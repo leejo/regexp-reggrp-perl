@@ -1,0 +1,9 @@
+blib*
+Makefile
+Makefile.old
+Build
+_build*
+pm_to_blib*
+*.tar.gz
+Regexp-RegGrp-*
+.DS_Store

@@ -1,0 +1,10 @@
+.cvsignore
+.gitignore
+Changes
+lib/Regexp/RegGrp.pm
+Makefile.PL
+MANIFEST
+README
+t/00-load.t
+t/pod.t
+t/01-io.t
