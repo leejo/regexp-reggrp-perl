@@ -87,7 +87,9 @@ sub new {
         );
     } @{$in_ref->{reggrp}};
 
-    $self->{restore_pattern}    = $in_ref->{restore_pattern} || qr~\x01(\d+)\x01~;
+    my $restore_pattern         = $in_ref->{restore_pattern} || qr~\x01(\d+)\x01~;
+    $self->{restore_pattern}    = qr/$restore_pattern/;
+
     $self->{store_data}         = [];
 
     my $offset  = 1;
