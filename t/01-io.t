@@ -140,7 +140,7 @@ my $test_data = {
             ]
         },
         {
-            description     => 'Store replacements',
+            description     => 'Restore replacements',
             input_string    => 'abcxyzabcxyzabcxyz',
             expected_output => 'bcxyzaAbcxyzYyz',
             test_restore    => 1,
@@ -153,6 +153,71 @@ my $test_data = {
                 },
                 {
                     regexp      => qr/((y)z)(.+)(\2)/,
+                    store       => sub {
+                        return sprintf( "%s%s%s", $_[1]->[0], uc( $_[1]->[1] ), $_[1]->[3] );
+                    }
+                },
+                {
+                    regexp      => qr/f(oo)?/,
+                    replacement => sub {
+                        return sprintf( "%s%s", $_[0], $_[1]->[0] );
+                    }
+                }
+            ]
+        },
+        {
+            description     => 'Store replacements with custom pattern',
+            input_string    => 'abcxyzabcxyzabcxyz',
+            expected_output => '~~0~~bcx~~1~~z',
+            restore_pattern => qr/~~(\d+)~~/,
+            reggrp      => [
+                {
+                    regexp      => qr/(a)(.+?)(\1)/,
+                    replacement => sub {
+                        return sprintf( "~~%d~~", $_[2] );
+                    },
+                    store       => sub {
+                        return sprintf( "%s%s%s", $_[1]->[1], $_[1]->[0], uc( $_[1]->[2] ) );
+                    }
+                },
+                {
+                    regexp      => qr/((y)z)(.+)(\2)/,
+                    replacement => sub {
+                        return sprintf( "~~%d~~", $_[2] );
+                    },
+                    store       => sub {
+                        return sprintf( "%s%s%s", $_[1]->[0], uc( $_[1]->[1] ), $_[1]->[3] );
+                    }
+                },
+                {
+                    regexp      => qr/f(oo)?/,
+                    replacement => sub {
+                        return sprintf( "%s%s", $_[0], $_[1]->[0] );
+                    }
+                }
+            ]
+        },
+        {
+            description     => 'Restore replacements with custom pattern',
+            input_string    => 'abcxyzabcxyzabcxyz',
+            expected_output => 'bcxyzaAbcxyzYyz',
+            restore_pattern => qr/~~(\d+)~~/,
+            test_restore    => 1,
+            reggrp      => [
+                {
+                    regexp      => qr/(a)(.+?)(\1)/,
+                    replacement => sub {
+                        return sprintf( "~~%d~~", $_[2] );
+                    },
+                    store       => sub {
+                        return sprintf( "%s%s%s", $_[1]->[1], $_[1]->[0], uc( $_[1]->[2] ) );
+                    }
+                },
+                {
+                    regexp      => qr/((y)z)(.+)(\2)/,
+                    replacement => sub {
+                        return sprintf( "~~%d~~", $_[2] );
+                    },
                     store       => sub {
                         return sprintf( "%s%s%s", $_[1]->[0], uc( $_[1]->[1] ), $_[1]->[3] );
                     }

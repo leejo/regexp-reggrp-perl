@@ -42,8 +42,11 @@ sub new {
         return undef;
     }
 
-    if ( ref( $in_ref->{restore_pattern} ) ) {
-        carp( 'Value for key "restore_pattern" must be a scalar!' );
+    if (
+        ref( $in_ref->{restore_pattern} ) and
+        ref( $in_ref->{restore_pattern} ) ne 'Regexp'
+    ) {
+        carp( 'Value for key "restore_pattern" must be a scalar or regexp!' );
         return undef;
     }
 
@@ -121,8 +124,6 @@ sub new {
 
         } @{$self->{reggrp}}
     );
-
-    print $self->{re_str} . "\n";
 
     bless( $self, $class );
 
@@ -265,8 +266,6 @@ To return a scalar without changing the input simply use (e.g. example 2):
     my $ret = $reggrp->exec( $text );
 
 The first argument must be a scalarref.
-
-=over 4
 
 =head1 EXAMPLES
 
