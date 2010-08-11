@@ -133,10 +133,17 @@ sub new {
 }
 
 sub exec {
-    my ( $self, $input ) = @_;
+    my ( $self, $input, $opts ) = @_;
 
     if ( ref( $input ) ne 'SCALAR' ) {
         carp( 'First argument in Regexp::RegGrp->exec must be a scalarref!' );
+        return undef;
+    }
+
+    $opts ||= {};
+
+    if ( ref( $opts ) ne 'HASH' ) {
+        carp( 'Second argument in Regexp::RegGrp->exec must be a hashref!' );
         return undef;
     }
 
@@ -153,14 +160,17 @@ sub exec {
         $to_process = $input;
     }
 
-    ${$to_process} =~ s/$self->{re_str}/$self->_process( %+ )/egsm;
+    ${$to_process} =~ s/$self->{re_str}/$self->_process( { match_hash => \%+, opts => $opts } )/egsm;
 
     # Return a scalar if requested by context
     return ${$to_process} if ( $cont eq 'scalar' );
 }
 
 sub _process {
-    my ( $self, %match_hash ) = @_;
+    my ( $self, $in_ref ) = @_;
+
+    my %match_hash  = %{$in_ref->{match_hash}};
+    my $opts        = $in_ref->{opts};
 
     my $match_key   = ( keys( %match_hash ) )[0];
     my ( $midx )    = $match_key =~ /^_(\d+)$/;
@@ -179,7 +189,7 @@ sub _process {
     }
     else {
         if ( ref( $self->{reggrp}->[$midx]->{replacement} ) eq 'CODE' ) {
-            $ret = $self->{reggrp}->[$midx]->{replacement}->( $match, \@submatches, scalar( @{$self->{store_data}} ) );
+            $ret = $self->{reggrp}->[$midx]->{replacement}->( $match, \@submatches, scalar( @{$self->{store_data}} ), $opts );
         }
     }
 
