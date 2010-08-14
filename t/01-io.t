@@ -47,19 +47,26 @@ my $test_data = {
                 {
                     regexp      => qr/(a)(.)/,
                     replacement => sub {
-                        return sprintf( "%s%s", $_[1]->[1], $_[1]->[0] );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s", $submatches->[1], $submatches->[0] );
                     }
                 },
                 {
                     regexp      => qr/((y)z)/,
                     replacement => sub {
-                        return sprintf( "%s%s", $_[1]->[1], uc( $_[1]->[0] ) );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s", $submatches->[1], uc( $submatches->[0] ) );
                     }
                 },
                 {
                     regexp      => qr/f(oo)?/,
                     replacement => sub {
-                        return sprintf( "%s%s", $_[0], $_[1]->[0] );
+                        my $in_ref      = shift;
+                        my $match       = $in_ref->{match};
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s", $match, $submatches->[0] );
                     }
                 }
             ]
@@ -72,19 +79,26 @@ my $test_data = {
                 {
                     regexp      => qr/(a)(.+?)(\1)/,
                     replacement => sub {
-                        return sprintf( "%s%s%s", $_[1]->[1], $_[1]->[0], uc( $_[1]->[2] ) );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[1], $submatches->[0], uc( $submatches->[2] ) );
                     }
                 },
                 {
                     regexp      => qr/((y)z).+(\1)/,
                     replacement => sub {
-                        return sprintf( "%s%s%s", $_[1]->[0], uc( $_[1]->[1] ) );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s", $submatches->[0], uc( $submatches->[1] ) );
                     }
                 },
                 {
                     regexp      => qr/f(oo)?/,
                     replacement => sub {
-                        return sprintf( "%s%s", $_[0], $_[1]->[0] );
+                        my $in_ref      = shift;
+                        my $match       = $in_ref->{match};
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s", $match, $submatches->[0] );
                     }
                 }
             ]
@@ -97,19 +111,26 @@ my $test_data = {
                 {
                     regexp      => qr/(a)(.+?)(\1)/,
                     replacement => sub {
-                        return sprintf( "%s%s%s", $_[1]->[1], $_[1]->[0], uc( $_[1]->[2] ) );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[1], $submatches->[0], uc( $submatches->[2] ) );
                     }
                 },
                 {
                     regexp      => qr/((y)z)(.+)(\2)/,
                     replacement => sub {
-                        return sprintf( "%s%s%s", $_[1]->[0], uc( $_[1]->[1] ), $_[1]->[3] );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[0], uc( $submatches->[1] ), $submatches->[3] );
                     }
                 },
                 {
                     regexp      => qr/f(oo)?/,
                     replacement => sub {
-                        return sprintf( "%s%s", $_[0], $_[1]->[0] );
+                        my $in_ref      = shift;
+                        my $match       = $in_ref->{match};
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s", $match, $submatches->[0] );
                     }
                 }
             ]
@@ -122,19 +143,26 @@ my $test_data = {
                 {
                     regexp      => qr/(a)(.+?)(\1)/,
                     store       => sub {
-                        return sprintf( "%s%s%s", $_[1]->[1], $_[1]->[0], uc( $_[1]->[2] ) );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[1], $submatches->[0], uc( $submatches->[2] ) );
                     }
                 },
                 {
                     regexp      => qr/((y)z)(.+)(\2)/,
                     store       => sub {
-                        return sprintf( "%s%s%s", $_[1]->[0], uc( $_[1]->[1] ), $_[1]->[3] );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[0], uc( $submatches->[1] ), $submatches->[3] );
                     }
                 },
                 {
                     regexp      => qr/f(oo)?/,
                     replacement => sub {
-                        return sprintf( "%s%s", $_[0], $_[1]->[0] );
+                        my $in_ref      = shift;
+                        my $match       = $in_ref->{match};
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s", $match, $submatches->[0] );
                     }
                 }
             ]
@@ -148,19 +176,26 @@ my $test_data = {
                 {
                     regexp      => qr/(a)(.+?)(\1)/,
                     store       => sub {
-                        return sprintf( "%s%s%s", $_[1]->[1], $_[1]->[0], uc( $_[1]->[2] ) );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[1], $submatches->[0], uc( $submatches->[2] ) );
                     }
                 },
                 {
                     regexp      => qr/((y)z)(.+)(\2)/,
                     store       => sub {
-                        return sprintf( "%s%s%s", $_[1]->[0], uc( $_[1]->[1] ), $_[1]->[3] );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[0], uc( $submatches->[1] ), $submatches->[3] );
                     }
                 },
                 {
                     regexp      => qr/f(oo)?/,
                     replacement => sub {
-                        return sprintf( "%s%s", $_[0], $_[1]->[0] );
+                        my $in_ref      = shift;
+                        my $match       = $in_ref->{match};
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s", $match, $submatches->[0] );
                     }
                 }
             ]
@@ -174,25 +209,36 @@ my $test_data = {
                 {
                     regexp      => qr/(a)(.+?)(\1)/,
                     replacement => sub {
-                        return sprintf( "~~%d~~", $_[2] );
+                        my $in_ref      = shift;
+                        my $store_index = $in_ref->{store_index};
+                        return sprintf( "~~%d~~", $store_index );
                     },
                     store       => sub {
-                        return sprintf( "%s%s%s", $_[1]->[1], $_[1]->[0], uc( $_[1]->[2] ) );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[1], $submatches->[0], uc( $submatches->[2] ) );
                     }
                 },
                 {
                     regexp      => qr/((y)z)(.+)(\2)/,
                     replacement => sub {
-                        return sprintf( "~~%d~~", $_[2] );
+                        my $in_ref      = shift;
+                        my $store_index = $in_ref->{store_index};
+                        return sprintf( "~~%d~~", $store_index );
                     },
                     store       => sub {
-                        return sprintf( "%s%s%s", $_[1]->[0], uc( $_[1]->[1] ), $_[1]->[3] );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[0], uc( $submatches->[1] ), $submatches->[3] );
                     }
                 },
                 {
                     regexp      => qr/f(oo)?/,
                     replacement => sub {
-                        return sprintf( "%s%s", $_[0], $_[1]->[0] );
+                        my $in_ref      = shift;
+                        my $match       = $in_ref->{match};
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s", $match, $submatches->[0] );
                     }
                 }
             ]
@@ -207,25 +253,36 @@ my $test_data = {
                 {
                     regexp      => qr/(a)(.+?)(\1)/,
                     replacement => sub {
-                        return sprintf( "~~%d~~", $_[2] );
+                        my $in_ref      = shift;
+                        my $store_index = $in_ref->{store_index};
+                        return sprintf( "~~%d~~", $store_index );
                     },
                     store       => sub {
-                        return sprintf( "%s%s%s", $_[1]->[1], $_[1]->[0], uc( $_[1]->[2] ) );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[1], $submatches->[0], uc( $submatches->[2] ) );
                     }
                 },
                 {
                     regexp      => qr/((y)z)(.+)(\2)/,
                     replacement => sub {
-                        return sprintf( "~~%d~~", $_[2] );
+                        my $in_ref      = shift;
+                        my $store_index = $in_ref->{store_index};
+                        return sprintf( "~~%d~~", $store_index );
                     },
                     store       => sub {
-                        return sprintf( "%s%s%s", $_[1]->[0], uc( $_[1]->[1] ), $_[1]->[3] );
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s%s", $submatches->[0], uc( $submatches->[1] ), $submatches->[3] );
                     }
                 },
                 {
                     regexp      => qr/f(oo)?/,
                     replacement => sub {
-                        return sprintf( "%s%s", $_[0], $_[1]->[0] );
+                        my $in_ref      = shift;
+                        my $match       = $in_ref->{match};
+                        my $submatches  = $in_ref->{submatches};
+                        return sprintf( "%s%s", $match, $submatches->[0] );
                     }
                 }
             ]

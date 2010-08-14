@@ -79,7 +79,7 @@ sub new {
                 regexp      => $_->{regexp},
                 replacement => defined( $_->{store} ) ? (
                     $in_ref->{restore_pattern} ? $_->{replacement} : sub {
-                        return sprintf( "\x01%d\x01", $_[2] );
+                        return sprintf( "\x01%d\x01", $_[0]->{store_index} );
                     }
                 ) : $_->{replacement},
                 store       => $_->{store}
@@ -189,7 +189,14 @@ sub _process {
     }
     else {
         if ( ref( $self->{reggrp}->[$midx]->{replacement} ) eq 'CODE' ) {
-            $ret = $self->{reggrp}->[$midx]->{replacement}->( $match, \@submatches, scalar( @{$self->{store_data}} ), $opts );
+            $ret = $self->{reggrp}->[$midx]->{replacement}->(
+                {
+                    match       => $match,
+                    submatches  => \@submatches,
+                    opts        => $opts,
+                    store_index => scalar( @{$self->{store_data}} )
+                }
+            );
         }
     }
 
@@ -202,7 +209,12 @@ sub _process {
             $store = $self->{reggrp}->[$midx]->{store};
         }
         elsif ( ref( $self->{reggrp}->[$midx]->{store} ) eq 'CODE' ) {
-            $store = $self->{reggrp}->[$midx]->{store}->( $match, \@submatches );
+            $store = $self->{reggrp}->[$midx]->{store}->(
+                {
+                    match       => $match,
+                    submatches  => \@submatches
+                }
+            );
         }
 
         push( @{$self->{store_data}}, $store );
