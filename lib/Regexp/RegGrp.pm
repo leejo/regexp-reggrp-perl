@@ -212,7 +212,8 @@ sub _process {
             $store = $self->{reggrp}->[$midx]->{store}->(
                 {
                     match       => $match,
-                    submatches  => \@submatches
+                    submatches  => \@submatches,
+                    opts        => $opts
                 }
             );
         }
@@ -267,7 +268,7 @@ __END__
 
 =head1 NAME
 
-Regexp::RegGrp - Groups regular expressions
+Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
@@ -283,11 +284,11 @@ Groups regular expressions to one regular expression
 
     my $reggrp = Regexp::RegGrp->new( [ { regexp => '%name%', replacement => 'John Doe' }, { regexp => '%company%', replacement => 'ACME' } ] );
 
-    $reggrp->exec( $text );
+    $reggrp->exec( \$scalar );
 
 To return a scalar without changing the input simply use (e.g. example 2):
 
-    my $ret = $reggrp->exec( $text );
+    my $ret = $reggrp->exec( \$scalar );
 
 The first argument must be a scalarref.
 
