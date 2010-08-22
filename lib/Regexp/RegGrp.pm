@@ -212,8 +212,7 @@ sub _process {
             $store = $self->{reggrp}->[$midx]->{store}->(
                 {
                     match       => $match,
-                    submatches  => \@submatches,
-                    opts        => $opts
+                    submatches  => \@submatches
                 }
             );
         }
@@ -268,7 +267,7 @@ __END__
 
 =head1 NAME
 
-Regexp::RegGrp - Groups a regular expressions collection
+Regexp::RegGrp - Groups regular expressions
 
 =head1 VERSION
 
