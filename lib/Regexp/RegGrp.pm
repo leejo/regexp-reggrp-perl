@@ -21,7 +21,7 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '0.01_01';
+our $VERSION = '0.01_02';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -212,7 +212,8 @@ sub _process {
             $store = $self->{reggrp}->[$midx]->{store}->(
                 {
                     match       => $match,
-                    submatches  => \@submatches
+                    submatches  => \@submatches,
+                    opts        => $opts
                 }
             );
         }
@@ -267,11 +268,11 @@ __END__
 
 =head1 NAME
 
-Regexp::RegGrp - Groups regular expressions
+Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 0.01_01
+Version 0.01_02
 
 =head1 DESCRIPTION
 
