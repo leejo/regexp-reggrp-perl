@@ -2,3 +2,14 @@ Revision history for Regexp-RegGrp
 
 0.01_01 2010-07-29
     First version, released on an unsuspecting world.
+
+0.01_02 2010-08-22
+    - Changed version.
+    - Added opts parameter to store function.
+    - Fixed abstract.
+    - Fixed .gitignore and .cvsignore.
+    - Switched to Module::Install.
+    - Updated MANIFEST.
+
+0.01_03
+    - Updated Changes.
