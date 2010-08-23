@@ -201,8 +201,7 @@ sub _process {
     }
 
     if (
-        defined( $self->{reggrp}->[$midx]->{store} ) and
-        defined( $self->{restore_pattern} )
+        defined( $self->{reggrp}->[$midx]->{store} )
     ) {
         my $store = $match;
         if ( not ref( $self->{reggrp}->[$midx]->{store} ) ) {
