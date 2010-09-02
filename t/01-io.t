@@ -286,6 +286,47 @@ my $test_data = {
                     }
                 }
             ]
+        },
+        {
+            description     => 'Modifier test 1',
+            input_string    => "   \n\n\n\t   \n  a \nb\n  c\n\n",
+            expected_output => "\n\n\n\na\nb\nc\n\n",
+            reggrp      => [
+                {
+                    regexp      => '^[^\S\n]*',
+                    replacement => ''
+                },
+                {
+                    regexp      => '[^\S\n]$',
+                    replacement => ''
+                },
+                {
+                    regexp      => 'B',
+                    replacement => 'd'
+                }
+            ]
+        },
+        {
+            description     => 'Modifier test 2',
+            input_string    => "   \n\n\n\t   \n  a \n\n\nb\n  c\n\n",
+            expected_output => "a \n\n\nd\n  c",
+            reggrp      => [
+                {
+                    regexp      => '^\s*',
+                    replacement => '',
+                    modifier    => 's'
+                },
+                {
+                    regexp      => '\s*$',
+                    replacement => '',
+                    modifier    => 's'
+                },
+                {
+                    regexp      => 'B',
+                    replacement => 'd',
+                    modifier    => 'i'
+                }
+            ]
         }
     ]
 };

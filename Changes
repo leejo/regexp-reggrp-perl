@@ -1,6 +1,10 @@
 Revision history for Regexp-RegGrp
 
-0.01_04 2010-09-07
+0.01_05 2010-09-07
+    - Changed modifier option.
+    - Added unit tests for modifier option.
+
+0.01_04 2010-09-02
     - Added modifier option.
     - Updated documentation.
 

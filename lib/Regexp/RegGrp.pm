@@ -21,7 +21,7 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '0.01_04';
+our $VERSION = '0.01_05';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -50,15 +50,6 @@ sub new {
         return undef;
     }
 
-    if ( ref( $in_ref->{modifier} ) ) {
-        carp( 'Value for key "modifier" must be a scalar!' );
-        return undef;
-    }
-    elsif ( $in_ref->{modifier} and $in_ref->{modifier} =~ /[^smi]/ ) {
-        carp( 'Value for key "modifier" must be one ore more regexp modifiers (xsmi)!' );
-        return undef;
-    }
-
     my $no = 0;
 
     map {
@@ -76,6 +67,9 @@ sub new {
             (
                 ref( $_->{store} ) and
                 ref( $_->{store} ) ne 'CODE'
+            ) or
+            (
+                ref( $_->{modifier} )
             )
         ) {
             carp( 'RegGrp No ' . $no . ' in arrayref is malformed!' );
@@ -91,12 +85,12 @@ sub new {
                         return sprintf( "\x01%d\x01", $_[0]->{store_index} );
                     }
                 ) : $_->{replacement},
-                store       => $_->{store}
+                store       => $_->{store},
+                modifier    => defined( $_->{modifier} ) ? $_->{modifier} : ( ref( $_->{regexp} ) ? undef : 'sm' )
             }
         );
     } @{$in_ref->{reggrp}};
 
-    my $modifier                = defined( $in_ref->{modifier} ) || 'sm';
     my $restore_pattern         = $in_ref->{restore_pattern} || qr~\x01(\d+)\x01~;
     $self->{restore_pattern}    = qr/$restore_pattern/;
 
@@ -106,7 +100,7 @@ sub new {
     my $midx    = 0;
 
     # In perl versions < 5.10 hash %+ doesn't exist, so we have to initialize it
-    $self->{re_str} = '(?' . $modifier . ':' . ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join(
+    $self->{re_str} = ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join(
         '|',
         map {
             my $re = $_->{regexp};
@@ -114,7 +108,11 @@ sub new {
             $re =~ s/${\(ESCAPE_CHARS)}//g;
             $re =~ s/${\(ESCAPE_BRACKETS)}//g;
             my @nparen = $re =~ /${\(BRACKETS)}/g;
-            $_->{regexp} = qr/$_->{regexp}/;
+
+            if ( defined( $_->{modifier} ) ) {
+                $_->{regexp} =~ s/^\(\?[xmsip-]+:(.*)\)$/$1/si;
+                $_->{regexp} = sprintf( '(?%s:%s)', $_->{modifier}, $_->{regexp} );
+            }
 
             $re = $_->{regexp};
 
@@ -135,7 +133,7 @@ sub new {
             $ret;
 
         } @{$self->{reggrp}}
-    ) . ')';
+    );
 
     bless( $self, $class );
 
@@ -186,7 +184,7 @@ sub _process {
     my ( $midx )    = $match_key =~ /^_(\d+)$/;
     my $match       = $match_hash{$match_key};
 
-    my @submatches = $match =~ /$self->{reggrp}->[$midx]->{regexp}/;
+    my @submatches = $match =~ $self->{reggrp}->[$midx]->{regexp};
     map { $_ ||= ''; } @submatches;
 
     my $ret = $match;
@@ -281,7 +279,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 0.01_04
+Version 0.01_05
 
 =head1 DESCRIPTION
 
