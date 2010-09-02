@@ -1,7 +1,13 @@
 Revision history for Regexp-RegGrp
 
-0.01_01 2010-07-29
-    First version, released on an unsuspecting world.
+0.01_04 2010-09-07
+    - Added modifier option.
+    - Updated documentation.
+
+0.01_03 2010-08-23
+    - Updated Changes.
+    - Fixed package.
+    - Removed obsolete condition.
 
 0.01_02 2010-08-22
     - Changed version.
@@ -11,6 +17,5 @@ Revision history for Regexp-RegGrp
     - Switched to Module::Install.
     - Updated MANIFEST.
 
-0.01_03
-    - Updated Changes.
-    - Fixed package.
+0.01_01 2010-07-29
+    - First version, released on an unsuspecting world.

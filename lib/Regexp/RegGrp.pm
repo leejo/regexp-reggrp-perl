@@ -21,7 +21,7 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '0.01_03';
+our $VERSION = '0.01_04';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -47,6 +47,15 @@ sub new {
         ref( $in_ref->{restore_pattern} ) ne 'Regexp'
     ) {
         carp( 'Value for key "restore_pattern" must be a scalar or regexp!' );
+        return undef;
+    }
+
+    if ( ref( $in_ref->{modifier} ) ) {
+        carp( 'Value for key "modifier" must be a scalar!' );
+        return undef;
+    }
+    elsif ( $in_ref->{modifier} and $in_ref->{modifier} =~ /[^smi]/ ) {
+        carp( 'Value for key "modifier" must be one ore more regexp modifiers (xsmi)!' );
         return undef;
     }
 
@@ -87,6 +96,7 @@ sub new {
         );
     } @{$in_ref->{reggrp}};
 
+    my $modifier                = defined( $in_ref->{modifier} ) || 'sm';
     my $restore_pattern         = $in_ref->{restore_pattern} || qr~\x01(\d+)\x01~;
     $self->{restore_pattern}    = qr/$restore_pattern/;
 
@@ -96,7 +106,7 @@ sub new {
     my $midx    = 0;
 
     # In perl versions < 5.10 hash %+ doesn't exist, so we have to initialize it
-    $self->{re_str} = ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join(
+    $self->{re_str} = '(?' . $modifier . ':' . ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join(
         '|',
         map {
             my $re = $_->{regexp};
@@ -125,7 +135,7 @@ sub new {
             $ret;
 
         } @{$self->{reggrp}}
-    );
+    ) . ')';
 
     bless( $self, $class );
 
@@ -160,7 +170,7 @@ sub exec {
         $to_process = $input;
     }
 
-    ${$to_process} =~ s/$self->{re_str}/$self->_process( { match_hash => \%+, opts => $opts } )/egsm;
+    ${$to_process} =~ s/$self->{re_str}/$self->_process( { match_hash => \%+, opts => $opts } )/eg;
 
     # Return a scalar if requested by context
     return ${$to_process} if ( $cont eq 'scalar' );
@@ -271,7 +281,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 0.01_03
+Version 0.01_04
 
 =head1 DESCRIPTION
 
@@ -281,7 +291,22 @@ Groups regular expressions to one regular expression
 
     use Regexp::RegGrp;
 
-    my $reggrp = Regexp::RegGrp->new( [ { regexp => '%name%', replacement => 'John Doe' }, { regexp => '%company%', replacement => 'ACME' } ] );
+    my $reggrp = Regexp::RegGrp->new(
+        {
+            reggrp          => [
+                {
+                    regexp => '%name%',
+                    replacement => 'John Doe'
+                },
+                {
+                    regexp => '%company%',
+                    replacement => 'ACME'
+                }
+            ],
+            restore_pattern => $restore_pattern,
+            modifier        => $modifier
+        }
+    );
 
     $reggrp->exec( \$scalar );
 
@@ -289,7 +314,100 @@ To return a scalar without changing the input simply use (e.g. example 2):
 
     my $ret = $reggrp->exec( \$scalar );
 
-The first argument must be a scalarref.
+The first argument must be a hashref. The keys are:
+
+=over 4
+
+=item reggrp (required)
+
+Arrayref of hashrefs. The keys of each hashref are:
+
+=over 8
+
+=item regexp (required)
+
+A regular expression
+
+=item replacement (optional)
+
+Scalar or sub.
+
+A replacement for the regular expression match. If not set, nothing will be replaced except "store" is set.
+In this case the match is replaced by something like sprintf("\x01%d\x01", $idx) where $idx is the index
+of the stored element in the store_data arrayref. If "store" is set the default is:
+
+    sub {
+        return sprintf( "\x01%d\x01", $_[0]->{store_index} );
+    }
+
+If a custom restore_pattern is passed to to constructor you MUST also define a replacement. Otherwise
+it is undefined.
+
+If you define a subroutine as replacement an hashref is passed to this subroutine. This hashref has
+four keys:
+
+=over 12
+
+=item match
+
+Scalar. The match of the regular expression.
+
+=item submatches
+
+Arrayref of submatches.
+
+=item store_index
+
+The next index. You need this if you want to create a placeholder and store the replacement in the
+$self->{store_data} arrayref.
+
+=item opts
+
+Hashref of custom options.
+
+=back
+
+=item store (optional)
+
+Scalar or sub. If you define a subroutine one an hashref is passed to this subroutine. This hashref has
+three keys:
+
+=over 12
+
+=item match
+
+Scalar. The match of the regular expression.
+
+=item submatches
+
+Arrayref of submatches.
+
+=item opts
+
+Hashref of custom options.
+
+=back
+
+A replacement for the regular expression match. It will not replace the match directly. The replacement
+will be stored in the $self->{store_data} arrayref. The placeholders in the text can easily be rereplaced
+with the restore_stored method later.
+
+=back
+
+=item restore_pattern (optional)
+
+Scalar or Regexp object. The default restore pattern is
+
+    qr~\x01(\d+)\x01~
+
+This means, if you use the restore_stored method it is looking for \x010\x01, \x011\x01, ... and
+replaces the matches with $self->{store_data}->[0], $self->{store_data}->[1], ...
+
+=item modifier (optional)
+
+Scalar. The default is /sm.
+This is set for the hole created regular expression. /g modifier is set by default and can not be changed.
+/i modifier is also supported, \x and \p modifier are not supported.
 
 =head1 EXAMPLES
 
@@ -306,7 +424,20 @@ Common usage.
 
     use Regexp::RegGrp;
 
-    my $reggrp = Regexp::RegGrp->new( [ { regexp => '%name%', replacement => 'John Doe' }, { regexp => '%company%', replacement => 'ACME' } ] );
+    my $reggrp = Regexp::RegGrp->new(
+        {
+            reggrp          => [
+                {
+                    regexp => '%name%',
+                    replacement => 'John Doe'
+                },
+                {
+                    regexp => '%company%',
+                    replacement => 'ACME'
+                }
+            ]
+        }
+    );
 
     open( INFILE, 'unprocessed.txt' );
     open( OUTFILE, '>processed.txt' );
@@ -330,7 +461,20 @@ A scalar is requested by the context. The input will remain unchanged.
 
     use Regexp::RegGrp;
 
-    my $reggrp = Regexp::RegGrp->new( [ { regexp => '%name%', replacement => 'John Doe' }, { regexp => '%company%', replacement => 'ACME' } ] );
+    my $reggrp = Regexp::RegGrp->new(
+        {
+            reggrp          => [
+                {
+                    regexp => '%name%',
+                    replacement => 'John Doe'
+                },
+                {
+                    regexp => '%company%',
+                    replacement => 'ACME'
+                }
+            ]
+        }
+    );
 
     open( INFILE, 'unprocessed.txt' );
     open( OUTFILE, '>processed.txt' );
