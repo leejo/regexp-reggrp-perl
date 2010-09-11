@@ -21,7 +21,7 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '0.02';
+our $VERSION = '0.0201';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -279,7 +279,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 0.02
+Version 0.0201
 
 =head1 DESCRIPTION
 
@@ -406,6 +406,8 @@ replaces the matches with $self->{store_data}->[0], $self->{store_data}->[1], ..
 Scalar. The default is /sm.
 This is set for the hole created regular expression. /g modifier is set by default and can not be changed.
 /i modifier is also supported, \x and \p modifier are not supported.
+
+=back
 
 =head1 EXAMPLES
 

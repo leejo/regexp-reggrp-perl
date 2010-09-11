@@ -1,5 +1,8 @@
 Revision history for Regexp-RegGrp
 
+0.0201 2010-09-12
+    - Fixed POD.
+
 0.02    2010-09-11
     - Changed version number.
 
