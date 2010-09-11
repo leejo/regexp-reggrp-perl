@@ -21,7 +21,7 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '0.01_05';
+our $VERSION = '0.02';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -279,7 +279,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 0.01_05
+Version 0.02
 
 =head1 DESCRIPTION
 
