@@ -21,7 +21,7 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '0.0201';
+our $VERSION = '0.0202';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -279,7 +279,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 0.0201
+Version 0.0202
 
 =head1 DESCRIPTION
 
@@ -365,6 +365,12 @@ Hashref of custom options.
 
 =back
 
+=item modifier (optional)
+
+Scalar. The default is /sm.
+This is set for the hole created regular expression. /g modifier is set by default and can not be changed.
+/i modifier is also supported, \x and \p modifier are not supported.
+
 =item store (optional)
 
 Scalar or sub. If you define a subroutine one an hashref is passed to this subroutine. This hashref has
@@ -400,12 +406,6 @@ Scalar or Regexp object. The default restore pattern is
 
 This means, if you use the restore_stored method it is looking for \x010\x01, \x011\x01, ... and
 replaces the matches with $self->{store_data}->[0], $self->{store_data}->[1], ...
-
-=item modifier (optional)
-
-Scalar. The default is /sm.
-This is set for the hole created regular expression. /g modifier is set by default and can not be changed.
-/i modifier is also supported, \x and \p modifier are not supported.
 
 =back
 
