@@ -21,7 +21,7 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '0.0202';
+our $VERSION = '0.0203';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -122,7 +122,9 @@ sub new {
 
             if ( $] < 5.010000 ) {
                 # In perl versions < 5.10 we need to fill %+ hash manually
-                $ret = '(' . $re . ')' . '(?{ $+{\'_' . $midx++ . '\'} = $^N; })';
+                # perl 5.8 doesn't reset the %+ hash correctly if there are zero-length submatches
+                # so this is also done here
+                $ret = '(' . $re . ')' . '(?{ %+ = ( \'_' . $midx++ . '\' => $^N ); })';
             }
             else {
                 $ret = '(?\'_' . $midx++ . '\'' . $re . ')';
@@ -279,7 +281,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 0.0202
+Version 0.0203
 
 =head1 DESCRIPTION
 

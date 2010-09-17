@@ -1,9 +1,13 @@
 Revision history for Regexp-RegGrp
 
-0.0202 2010-09-13
+0.0203  2010-09-17
+    - Fixed zero-length submatch bug for perl 5.8.
+    - Added unit test for zero-length submatch.
+
+0.0202  2010-09-13
     - Moved documentation for modifier option to the right place.
 
-0.0201 2010-09-12
+0.0201  2010-09-12
     - Fixed POD.
 
 0.02    2010-09-11

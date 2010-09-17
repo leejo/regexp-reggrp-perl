@@ -327,6 +327,32 @@ my $test_data = {
                     modifier    => 'i'
                 }
             ]
+        },
+        {
+            description     => 'Zero-length submatch test',
+            input_string    => "   \n\n\n\t   \n  a \n\n\nb\n  c\n\n",
+            expected_output => "a \n\n\nx\nc",
+            reggrp      => [
+                {
+                    regexp      => '^\s*',
+                    replacement => '',
+                    modifier    => 's'
+                },
+                {
+                    regexp      => '^[^\S\n]*',
+                    replacement => '',
+                    modifier    => 'm'
+                },
+                {
+                    regexp      => '\s*$',
+                    replacement => '',
+                    modifier    => 's'
+                },
+                {
+                    regexp      => 'b',
+                    replacement => 'x'
+                }
+            ]
         }
     ]
 };
