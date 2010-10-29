@@ -106,7 +106,7 @@ my $test_data = {
         {
             description     => 'Regexes with backreferences 2',
             input_string    => 'abcxyzabcxyzabcxyz',
-            expected_output => 'bcxyzaAbcxyzYyz',
+            expected_output => ( $] < 5.010000 ) ? 'bcxyzaAbcxyzabcxyz' : 'bcxyzaAbcxyzYyz',
             reggrp      => [
                 {
                     regexp      => qr/(a)(.+?)(\1)/,
@@ -117,7 +117,7 @@ my $test_data = {
                     }
                 },
                 {
-                    regexp      => qr/((y)z)(.+)(\2)/,
+                    regexp      => qr/((y)z)(.+)(\g{2})/,
                     replacement => sub {
                         my $in_ref      = shift;
                         my $submatches  = $in_ref->{submatches};

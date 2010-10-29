@@ -12,7 +12,6 @@ inc/Module/Install/WriteAll.pm
 lib/Regexp/RegGrp.pm
 Makefile.PL
 MANIFEST
-META.yml
 README
 t/00-load.t
 t/01-io.t

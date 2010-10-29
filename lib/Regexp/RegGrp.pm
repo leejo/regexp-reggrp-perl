@@ -13,15 +13,15 @@ BEGIN {
 }
 
 use constant {
-    ESCAPE_BRACKETS => qr~\(\?(-?[pmixs]+:|[:=!><])|\[[^\]]+\]~,
+    ESCAPE_BRACKETS => qr~(?<!\\)\[[^\]]+(?<!\\)\]|\(\?([\^dlupimsx-]+:|[:=!><])~,
     ESCAPE_CHARS    => qr~\\.~,
     BRACKETS        => qr~\(~,
-    BACK_REF        => qr~\\(\d+)~
+    BACK_REF        => qr~(?:\\g?(\d\d*)|\\g\{(\d+)\})~
 };
 
 # =========================================================================== #
 
-our $VERSION = '0.0203';
+our $VERSION = '0.03_01';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -110,13 +110,19 @@ sub new {
             my @nparen = $re =~ /${\(BRACKETS)}/g;
 
             if ( defined( $_->{modifier} ) ) {
-                $_->{regexp} =~ s/^\(\?[xmsip-]+:(.*)\)$/$1/si;
+                $_->{regexp} =~ s/^\(\?[\^dlupimsx-]+:(.*)\)$/$1/si;
                 $_->{regexp} = sprintf( '(?%s:%s)', $_->{modifier}, $_->{regexp} );
             }
 
             $re = $_->{regexp};
 
-            $re =~ s/${\(BACK_REF)}/sprintf( "\\%d", $offset + $1 )/eg;
+            my $backref_pattern = '\\g{%d}';
+
+            if ( $] < 5.010000 ) {
+                $backref_pattern = '\\%d';
+            }
+
+            $re =~ s/${\(BACK_REF)}/sprintf( $backref_pattern, $offset + ( $1 || $2 ) )/eg;
 
             my $ret;
 
@@ -281,7 +287,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 0.0203
+Version 0.03_01
 
 =head1 DESCRIPTION
 
@@ -296,15 +302,16 @@ Groups regular expressions to one regular expression
             reggrp          => [
                 {
                     regexp => '%name%',
-                    replacement => 'John Doe'
+                    replacement => 'John Doe',
+                    modifier    => $modifier
                 },
                 {
                     regexp => '%company%',
-                    replacement => 'ACME'
+                    replacement => 'ACME',
+                    modifier    => $modifier
                 }
             ],
-            restore_pattern => $restore_pattern,
-            modifier        => $modifier
+            restore_pattern => $restore_pattern
         }
     );
 
@@ -369,13 +376,11 @@ Hashref of custom options.
 
 =item modifier (optional)
 
-Scalar. The default is /sm.
-This is set for the hole created regular expression. /g modifier is set by default and can not be changed.
-/i modifier is also supported, \x and \p modifier are not supported.
+Scalar. The default is 'sm'.
 
 =item store (optional)
 
-Scalar or sub. If you define a subroutine one an hashref is passed to this subroutine. This hashref has
+Scalar or sub. If you define a subroutine an hashref is passed to this subroutine. This hashref has
 three keys:
 
 =over 12

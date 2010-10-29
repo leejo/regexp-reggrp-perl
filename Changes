@@ -1,5 +1,10 @@
 Revision history for Regexp-RegGrp
 
+0.03_01 2010-10-29
+    - Fixed (?^: regexp syntax handling for perl 5.14.
+    - Changed backreferences handling.
+    - Fixed POD.
+
 0.0203  2010-09-17
     - Fixed zero-length submatch bug for perl 5.8.
     - Added unit test for zero-length submatch.
