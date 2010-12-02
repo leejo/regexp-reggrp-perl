@@ -1,5 +1,8 @@
 Revision history for Regexp-RegGrp
 
+0.04    2010-12-02
+    - Changed version number.
+
 0.03_01 2010-10-29
     - Fixed (?^: regexp syntax handling for perl 5.14.
     - Changed backreferences handling.
