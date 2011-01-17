@@ -1,6 +1,6 @@
 package Regexp::RegGrp;
 
-use 5.008;
+use 5.008009;
 use warnings;
 use strict;
 use Carp;
@@ -21,7 +21,7 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '0.04';
+our $VERSION = '1.000';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -287,7 +287,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 0.04
+Version 1.000
 
 =head1 DESCRIPTION
 
@@ -515,7 +515,7 @@ perldoc Regexp::RegGrp
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2010 Merten Falk, all rights reserved.
+Copyright 2010, 2011 Merten Falk, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
