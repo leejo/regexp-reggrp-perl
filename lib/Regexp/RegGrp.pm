@@ -21,7 +21,7 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '1.000';
+our $VERSION = '1.000001';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -193,7 +193,7 @@ sub _process {
     my $match       = $match_hash{$match_key};
 
     my @submatches = $match =~ $self->{reggrp}->[$midx]->{regexp};
-    map { $_ ||= ''; } @submatches;
+    map { $_ .= ''; } @submatches;
 
     my $ret = $match;
 
@@ -287,7 +287,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 1.000
+Version 1.000001
 
 =head1 DESCRIPTION
 

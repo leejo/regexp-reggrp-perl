@@ -40,7 +40,7 @@ my $test_data = {
             ]
         },
         {
-            description     => 'Simple regexes with sub replacements',
+            description     => 'Simple regexes with sub replacements I',
             input_string    => 'abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz',
             expected_output => 'bacdefghijklmnopqrstuvwxyYZbacdefghijklmnopqrstuvwxyYZ',
             reggrp      => [
@@ -67,6 +67,22 @@ my $test_data = {
                         my $match       = $in_ref->{match};
                         my $submatches  = $in_ref->{submatches};
                         return sprintf( "%s%s", $match, $submatches->[0] );
+                    }
+                }
+            ]
+        },
+        {
+            description     => 'Simple regexes with sub replacements II',
+            input_string    => 'a1a2a0a1a0a2a3bcde',
+            expected_output => 'a1a2a0a1a0a2a3bcde',
+            reggrp      => [
+                {
+                    regexp      => qr/(a)(\d)/,
+                    replacement => sub {
+                        my $in_ref      = shift;
+                        my $submatches  = $in_ref->{submatches};
+
+                        return sprintf( "%s%s", $submatches->[0], $submatches->[1] );
                     }
                 }
             ]
