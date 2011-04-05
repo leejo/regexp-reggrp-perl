@@ -4,6 +4,7 @@ use 5.008009;
 use warnings;
 use strict;
 use Carp;
+use Regexp::RegGrp::Data;
 
 BEGIN {
     if ( $] < 5.010000 ) {
@@ -21,25 +22,27 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '1.000001';
+our $VERSION = '1.001_001';
 
 sub new {
     my ( $class, $in_ref )  = @_;
     my $self                = {};
 
+    bless( $self, $class );
+
     if ( ref( $in_ref ) ne 'HASH' ) {
         carp( 'First argument must be a hashref!' );
-        return undef;
+        return;
     }
 
     unless ( exists( $in_ref->{reggrp} ) ) {
             carp( 'Key "reggrp" does not exist in input hashref!' );
-            return undef;
+            return;
     }
 
     if ( ref( $in_ref->{reggrp} ) ne 'ARRAY' ) {
         carp( 'Value for key "reggrp" must be an arrayref!' );
-        return undef;
+        return;
     }
 
     if (
@@ -47,74 +50,49 @@ sub new {
         ref( $in_ref->{restore_pattern} ) ne 'Regexp'
     ) {
         carp( 'Value for key "restore_pattern" must be a scalar or regexp!' );
-        return undef;
+        return;
     }
 
     my $no = 0;
 
     map {
         $no++;
-        if (
-            (
-                ref( $_->{regexp} ) and
-                ref( $_->{regexp} ) ne 'Regexp'
-            ) or
-            not length( $_->{regexp} ) or
-            (
-                ref( $_->{replacement} ) and
-                ref( $_->{replacement} ) ne 'CODE'
-            ) or
-            (
-                ref( $_->{store} ) and
-                ref( $_->{store} ) ne 'CODE'
-            ) or
-            (
-                ref( $_->{modifier} )
-            )
-        ) {
-            carp( 'RegGrp No ' . $no . ' in arrayref is malformed!' );
-            return undef;
-        }
 
-        push(
-            @{$self->{reggrp}},
+        my $reggrp_data = Regexp::RegGrp::Data->new(
             {
-                regexp      => $_->{regexp},
-                replacement => defined( $_->{store} ) ? (
-                    $in_ref->{restore_pattern} ? $_->{replacement} : sub {
-                        return sprintf( "\x01%d\x01", $_[0]->{store_index} );
-                    }
-                ) : $_->{replacement},
-                store       => $_->{store},
-                modifier    => defined( $_->{modifier} ) ? $_->{modifier} : ( ref( $_->{regexp} ) ? undef : 'sm' )
+                regexp          => $_->{regexp},
+                replacement     => $_->{replacement},
+                store           => $_->{store},
+                modifier        => $_->{modifier},
+                restore_pattern => $in_ref->{restore_pattern}
             }
         );
+
+        unless ( $reggrp_data ) {
+            carp( 'RegGrp No ' . $no . ' in arrayref is malformed!' );
+            return;
+        }
+
+        $self->reggrp_add( $reggrp_data );
     } @{$in_ref->{reggrp}};
 
     my $restore_pattern         = $in_ref->{restore_pattern} || qr~\x01(\d+)\x01~;
-    $self->{restore_pattern}    = qr/$restore_pattern/;
-
-    $self->{store_data}         = [];
+    $self->{_restore_pattern}   = qr/$restore_pattern/;
 
     my $offset  = 1;
     my $midx    = 0;
 
     # In perl versions < 5.10 hash %+ doesn't exist, so we have to initialize it
-    $self->{re_str} = ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join(
+    $self->{_re_str} = ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join(
         '|',
         map {
-            my $re = $_->{regexp};
+            my $re = $_->regexp();
             # Count backref brackets
             $re =~ s/${\(ESCAPE_CHARS)}//g;
             $re =~ s/${\(ESCAPE_BRACKETS)}//g;
             my @nparen = $re =~ /${\(BRACKETS)}/g;
 
-            if ( defined( $_->{modifier} ) ) {
-                $_->{regexp} =~ s/^\(\?[\^dlupimsx-]+:(.*)\)$/$1/si;
-                $_->{regexp} = sprintf( '(?%s:%s)', $_->{modifier}, $_->{regexp} );
-            }
-
-            $re = $_->{regexp};
+            $re = $_->regexp();
 
             my $backref_pattern = '\\g{%d}';
 
@@ -140,13 +118,81 @@ sub new {
 
             $ret;
 
-        } @{$self->{reggrp}}
+        } $self->reggrp_array()
     );
-
-    bless( $self, $class );
 
     return $self;
 }
+
+# re_str methods
+
+sub re_str {
+    my $self = shift;
+
+    return $self->{_re_str};
+}
+
+# /re_str methods
+
+# restore_pattern methods
+
+sub restore_pattern {
+    my $self = shift;
+
+    return $self->{_restore_pattern};
+}
+
+# /restore_pattern methods
+
+# store_data methods
+
+sub store_data_add {
+    my ( $self, $data ) = @_;
+
+    push( @{$self->{_store_data}}, $data );
+}
+
+sub store_data_by_idx {
+    my ( $self, $idx ) = @_;
+
+    return $self->{_store_data}->[$idx];
+}
+
+sub store_data_count {
+    my $self = shift;
+
+    return scalar( @{$self->{_store_data} || []} );
+}
+
+sub flush_stored {
+    my $self = shift;
+
+    $self->{_store_data} = [];
+}
+
+# /store_data methods
+
+# reggrp methods
+
+sub reggrp_add {
+    my ( $self, $reggrp ) = @_;
+
+    push( @{$self->{_reggrp}}, $reggrp );
+}
+
+sub reggrp_array {
+    my $self = shift;
+
+    return @{$self->{_reggrp}};
+}
+
+sub reggrp_by_idx {
+    my ( $self, $idx ) = @_;
+
+    return $self->{_reggrp}->[$idx];
+}
+
+# /reggrp methods
 
 sub exec {
     my ( $self, $input, $opts ) = @_;
@@ -176,7 +222,7 @@ sub exec {
         $to_process = $input;
     }
 
-    ${$to_process} =~ s/$self->{re_str}/$self->_process( { match_hash => \%+, opts => $opts } )/eg;
+    ${$to_process} =~ s/${\$self->re_str()}/$self->_process( { match_hash => \%+, opts => $opts } )/eg;
 
     # Return a scalar if requested by context
     return ${$to_process} if ( $cont eq 'scalar' );
@@ -192,39 +238,41 @@ sub _process {
     my ( $midx )    = $match_key =~ /^_(\d+)$/;
     my $match       = $match_hash{$match_key};
 
-    my @submatches = $match =~ $self->{reggrp}->[$midx]->{regexp};
+    my $reggrp = $self->reggrp_by_idx( $midx );
+
+    my @submatches = $match =~ $reggrp->regexp();
     map { $_ .= ''; } @submatches;
 
     my $ret = $match;
 
-    if (
-        defined( $self->{reggrp}->[$midx]->{replacement} ) and
-        not ref( $self->{reggrp}->[$midx]->{replacement} )
-    ) {
-        $ret = $self->{reggrp}->[$midx]->{replacement};
-    }
-    else {
-        if ( ref( $self->{reggrp}->[$midx]->{replacement} ) eq 'CODE' ) {
-            $ret = $self->{reggrp}->[$midx]->{replacement}->(
-                {
-                    match       => $match,
-                    submatches  => \@submatches,
-                    opts        => $opts,
-                    store_index => scalar( @{$self->{store_data}} )
-                }
-            );
-        }
-    }
+    my $replacement = $reggrp->replacement();
 
     if (
-        defined( $self->{reggrp}->[$midx]->{store} )
+        defined( $replacement ) and
+        not ref( $replacement )
     ) {
-        my $store = $match;
-        if ( not ref( $self->{reggrp}->[$midx]->{store} ) ) {
-            $store = $self->{reggrp}->[$midx]->{store};
+        $ret = $replacement;
+    }
+    elsif ( ref( $replacement ) eq 'CODE' ) {
+        $ret = $replacement->(
+            {
+                match       => $match,
+                submatches  => \@submatches,
+                opts        => $opts,
+                store_index => $self->store_data_count()
+            }
+        );
+    }
+
+    my $store = $reggrp->store();
+
+    if ( $store ) {
+        my $tmp_match = $match;
+        if ( not ref( $store ) ) {
+            $tmp_match = $store;
         }
-        elsif ( ref( $self->{reggrp}->[$midx]->{store} ) eq 'CODE' ) {
-            $store = $self->{reggrp}->[$midx]->{store}->(
+        elsif ( ref( $store ) eq 'CODE' ) {
+            $tmp_match = $store->(
                 {
                     match       => $match,
                     submatches  => \@submatches,
@@ -233,7 +281,7 @@ sub _process {
             );
         }
 
-        push( @{$self->{store_data}}, $store );
+        $self->store_data_add( $tmp_match );
     }
 
     return $ret;
@@ -261,20 +309,14 @@ sub restore_stored {
     }
 
     # Here is a while loop, because there could be recursive replacements
-    while ( ${$to_process} =~ /$self->{restore_pattern}/ ) {
-        ${$to_process} =~ s/$self->{restore_pattern}/$self->{store_data}->[$1]/egsm;
+    while ( ${$to_process} =~ /${\$self->restore_pattern()}/ ) {
+        ${$to_process} =~ s/${\$self->restore_pattern()}/$self->store_data_by_idx( $1 )/egsm;
     }
 
     $self->flush_stored();
 
     # Return a scalar if requested by context
     return ${$to_process} if ( $cont eq 'scalar' );
-}
-
-sub flush_stored {
-    my $self = shift;
-
-    $self->{store_data} = [];
 }
 
 1;
@@ -287,7 +329,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 1.000001
+Version 1.001_001
 
 =head1 DESCRIPTION
 
@@ -502,16 +544,14 @@ Merten Falk, C<< <nevesenin at cpan.org> >>
 
 =head1 BUGS
 
-Please report any bugs or feature requests to
-C<bug-javascript-packer at rt.cpan.org>, or through the web interface at
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Regexp-RegGrp>.
+Please report any bugs or feature requests through the web interface at
+L<http://github.com/nevesenin/regexp-reggrp-perl/issues>.
 
 =head1 SUPPORT
 
 You can find documentation for this module with the perldoc command.
 
 perldoc Regexp::RegGrp
-
 
 =head1 COPYRIGHT & LICENSE
 

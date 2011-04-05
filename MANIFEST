@@ -10,9 +10,12 @@ inc/Module/Install/Metadata.pm
 inc/Module/Install/Win32.pm
 inc/Module/Install/WriteAll.pm
 lib/Regexp/RegGrp.pm
+lib/Regexp/RegGrp/Data.pm
 Makefile.PL
 MANIFEST
 README
 t/00-load.t
-t/01-io.t
+t/01-data.t
+t/02-reggrp.t
+t/03-io.t
 t/pod.t

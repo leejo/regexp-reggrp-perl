@@ -1,5 +1,9 @@
 Revision history for Regexp-RegGrp
 
+1.001_001   2011-04-05
+    - Splited up RegGrp.pm.
+    - Added tests.
+
 1.000001    2011-02-27
     - Fixed "undefined submatches bug" (Thanks to Dan Thomas).
 

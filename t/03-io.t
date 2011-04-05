@@ -3,6 +3,7 @@
 use Test::More;
 
 my $test_data = {
+
     testcases       => [
         {
             description     => 'Simple regexes without replacements',
@@ -376,8 +377,10 @@ my $test_data = {
 SKIP: {
     my $not = scalar( @{$test_data->{testcases}} ) * 2;
 
-    eval( 'use Regexp::RegGrp' );
+    eval( 'use Regexp::RegGrp::Data' );
+    skip( 'Regexp::RegGrp::Data not installed!', $not ) if ( $@ );
 
+    eval( 'use Regexp::RegGrp' );
     skip( 'Regexp::RegGrp not installed!', $not ) if ( $@ );
 
     plan tests => $not;
