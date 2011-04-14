@@ -29,7 +29,7 @@ my $regexp_tests = [
             regexp  => qr/(a)(.+?)(\1)/,
         },
         output  => {
-            regexp  => '(?-xism:(a)(.+?)(\1))'
+            regexp  => ( $] < 5.013006 ) ? '(?-xism:(a)(.+?)(\1))' : '(?^:(a)(.+?)(\1))'
         },
         message => 'regexp is a regexp object'
     },
@@ -224,7 +224,7 @@ my $modifier_tests = [
             regexp => qr/(a)(.+?)(\1)/,
         },
         output  => {
-            regexp => '(?-xism:(a)(.+?)(\1))'
+            regexp => ( $] < 5.013006 ) ? '(?-xism:(a)(.+?)(\1))' : '(?^:(a)(.+?)(\1))'
         },
         message => 'modifier is undefined and regexp is a regexp object'
     },
@@ -236,7 +236,7 @@ my $restore_pattern_tests = [
             regexp  => '(a)(.+?)(\1)'
         },
         output  => {
-            restore_pattern => '(?-xism:\x01(\d+)\x01)'
+            restore_pattern => ( $] < 5.013006 ) ? '(?-xism:\x01(\d+)\x01)' : '(?^:\x01(\d+)\x01)'
         },
         message => 'restore_pattern is undefined'
     },
@@ -262,7 +262,7 @@ my $restore_pattern_tests = [
             restore_pattern => qr/(a)(.+?)(\1)/,
         },
         output  => {
-            restore_pattern => '(?-xism:(a)(.+?)(\1))'
+            restore_pattern => ( $] < 5.013006 ) ? '(?-xism:(a)(.+?)(\1))' : '(?^:(a)(.+?)(\1))'
         },
         message => 'restore_pattern is a regexp object'
     },
@@ -272,7 +272,7 @@ my $restore_pattern_tests = [
             restore_pattern => '(a)(.+?)(\1)',
         },
         output  => {
-            restore_pattern => '(?-xism:(a)(.+?)(\1))'
+            restore_pattern => ( $] < 5.013006 ) ? '(?-xism:(a)(.+?)(\1))' : '(?^:(a)(.+?)(\1))'
         },
         message => 'restore_pattern is a scalar'
     },
