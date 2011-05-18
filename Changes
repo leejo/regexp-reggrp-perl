@@ -1,5 +1,8 @@
 Revision history for Regexp-RegGrp
 
+1.002   2011-05-18
+    - Changed version number.
+
 1.001_002   2011-04-14
     - Fixed tests for perl > 5.13.5
 
