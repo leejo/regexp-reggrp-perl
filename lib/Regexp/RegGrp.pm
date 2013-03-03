@@ -25,59 +25,18 @@ use constant {
 our $VERSION = '1.002001';
 
 sub new {
-    my ( $class, $in_ref )  = @_;
+    my ( $class, $args )  = @_;
     my $self                = {};
 
     bless( $self, $class );
 
-    if ( ref( $in_ref ) ne 'HASH' ) {
-        carp( 'First argument must be a hashref!' );
-        return;
-    }
+    return unless ( $self->args_are_valid( $args ) );
 
-    unless ( exists( $in_ref->{reggrp} ) ) {
-            carp( 'Key "reggrp" does not exist in input hashref!' );
-            return;
-    }
+    $self->{_restore_pattern} = $args->{restore_pattern};
+    $self->{_reggrp} = $args->{reggrp};
 
-    if ( ref( $in_ref->{reggrp} ) ne 'ARRAY' ) {
-        carp( 'Value for key "reggrp" must be an arrayref!' );
-        return;
-    }
-
-    if (
-        ref( $in_ref->{restore_pattern} ) and
-        ref( $in_ref->{restore_pattern} ) ne 'Regexp'
-    ) {
-        carp( 'Value for key "restore_pattern" must be a scalar or regexp!' );
-        return;
-    }
-
-    my $no = 0;
-
-    map {
-        $no++;
-
-        my $reggrp_data = Regexp::RegGrp::Data->new(
-            {
-                regexp          => $_->{regexp},
-                replacement     => $_->{replacement},
-                store           => $_->{store},
-                modifier        => $_->{modifier},
-                restore_pattern => $in_ref->{restore_pattern}
-            }
-        );
-
-        unless ( $reggrp_data ) {
-            carp( 'RegGrp No ' . $no . ' in arrayref is malformed!' );
-            return;
-        }
-
-        $self->reggrp_add( $reggrp_data );
-    } @{$in_ref->{reggrp}};
-
-    my $restore_pattern         = $in_ref->{restore_pattern} || qr~\x01(\d+)\x01~;
-    $self->{_restore_pattern}   = qr/$restore_pattern/;
+    $self->create_reggrp_objects();
+    $self->_adjust_restore_pattern_attribute();
 
     my $offset  = 1;
     my $midx    = 0;
@@ -122,6 +81,79 @@ sub new {
     );
 
     return $self;
+}
+
+sub create_reggrp_objects {
+    my ( $self ) = @_;
+
+    my $no = 0;
+
+    map {
+        $no++;
+
+        unless ( $self->create_reggrp_object( $_ ) ) {
+            carp( 'RegGrp No ' . $no . ' in arrayref is malformed!' );
+            return 0;
+        }
+
+    } @{ $self->{_reggrp} };
+
+    return 1;
+}
+
+sub create_reggrp_object {
+    my ( $self, $args ) = @_;
+
+    my $reggrp_data = Regexp::RegGrp::Data->new(
+        {
+            regexp          => $args->{regexp},
+            replacement     => $args->{replacement},
+            placeholder           => $args->{placeholder},
+            modifier        => $args->{modifier}
+        }
+    );
+
+    return 0 unless ( $reggrp_data );
+
+    $self->reggrp_add( $reggrp_data );
+
+    return 1;
+}
+
+sub _adjust_restore_pattern_attribute {
+    my ( $self ) = @_;
+
+    my $restore_pattern = $self->{_restore_pattern} || qr~\x01(\d+)\x01~;
+    $self->{_restore_pattern} = qr/$restore_pattern/;
+}
+
+sub args_are_valid {
+    my ( $self, $args ) = @_;
+
+    if ( ref( $args ) ne 'HASH' ) {
+        carp( 'First argument must be a hashref!' );
+        return 0;
+    }
+
+    unless ( exists( $args->{reggrp} ) ) {
+            carp( 'Key "reggrp" does not exist in input hashref!' );
+            return 0;
+    }
+
+    if ( ref( $args->{reggrp} ) ne 'ARRAY' ) {
+        carp( 'Value for key "reggrp" must be an arrayref!' );
+        return 0;
+    }
+
+    if (
+        ref( $args->{restore_pattern} ) and
+        ref( $args->{restore_pattern} ) ne 'Regexp'
+    ) {
+        carp( 'Value for key "restore_pattern" must be a scalar or regexp!' );
+        return 0;
+    }
+
+    return 1;
 }
 
 # re_str methods
@@ -177,19 +209,19 @@ sub flush_stored {
 sub reggrp_add {
     my ( $self, $reggrp ) = @_;
 
-    push( @{$self->{_reggrp}}, $reggrp );
+    push( @{$self->{_reggrps}}, $reggrp );
 }
 
 sub reggrp_array {
     my $self = shift;
 
-    return @{$self->{_reggrp}};
+    return @{$self->{_reggrps}};
 }
 
 sub reggrp_by_idx {
     my ( $self, $idx ) = @_;
 
-    return $self->{_reggrp}->[$idx];
+    return $self->{_reggrps}->[$idx];
 }
 
 # /reggrp methods
@@ -229,10 +261,10 @@ sub exec {
 }
 
 sub _process {
-    my ( $self, $in_ref ) = @_;
+    my ( $self, $args ) = @_;
 
-    my %match_hash  = %{$in_ref->{match_hash}};
-    my $opts        = $in_ref->{opts};
+    my %match_hash  = %{$args->{match_hash}};
+    my $opts        = $args->{opts};
 
     my $match_key   = ( keys( %match_hash ) )[0];
     my ( $midx )    = $match_key =~ /^_(\d+)$/;
@@ -259,29 +291,30 @@ sub _process {
                 match       => $match,
                 submatches  => \@submatches,
                 opts        => $opts,
-                store_index => $self->store_data_count()
             }
         );
     }
 
-    my $store = $reggrp->store();
+    my $placeholder = $reggrp->placeholder();
 
-    if ( $store ) {
-        my $tmp_match = $match;
-        if ( not ref( $store ) ) {
-            $tmp_match = $store;
+    if ( $placeholder ) {
+        my $store = $ret;
+
+        if ( not ref( $placeholder ) ) {
+            $ret = $placeholder;
         }
-        elsif ( ref( $store ) eq 'CODE' ) {
-            $tmp_match = $store->(
+        elsif ( ref( $placeholder ) eq 'CODE' ) {
+            $ret = $placeholder->(
                 {
                     match       => $match,
                     submatches  => \@submatches,
-                    opts        => $opts
+                    opts        => $opts,
+                    placeholder_index => $self->store_data_count()
                 }
             );
         }
 
-        $self->store_data_add( $tmp_match );
+        $self->store_data_add( $store );
     }
 
     return $ret;
@@ -386,7 +419,7 @@ In this case the match is replaced by something like sprintf("\x01%d\x01", $idx)
 of the stored element in the store_data arrayref. If "store" is set the default is:
 
     sub {
-        return sprintf( "\x01%d\x01", $_[0]->{store_index} );
+        return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} );
     }
 
 If a custom restore_pattern is passed to to constructor you MUST also define a replacement. Otherwise
@@ -405,7 +438,7 @@ Scalar. The match of the regular expression.
 
 Arrayref of submatches.
 
-=item store_index
+=item placeholder_index
 
 The next index. You need this if you want to create a placeholder and store the replacement in the
 $self->{store_data} arrayref.

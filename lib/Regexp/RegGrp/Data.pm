@@ -5,80 +5,113 @@ use warnings;
 use strict;
 use Carp;
 
-our @ACCESSORS = ( 'regexp', 'replacement', 'store', 'restore_pattern' );
+our @ACCESSORS = ( 'regexp', 'replacement', 'placeholder' );
 
 ##########################################################################################
 
-{
-    no strict 'refs';
-
-    foreach my $field ( @ACCESSORS ) {
-        next if defined *{'Regexp::RegGrp::Data::' . $field}{CODE};
-
-        *{'Regexp::RegGrp::Data::' . $field} = sub {
-            my $self = shift;
-
-            return $self->{'_' . $field};
-        };
-    }
-}
-
 sub new {
-    my ( $class, $in_ref )  = @_;
-    my $self                = {};
+    my ( $class, $args ) = @_;
+
+    $args ||= {};
+
+    my $self = {};
 
     bless( $self, $class );
 
-    unless ( $in_ref->{regexp} ) {
-        carp( 'Value for key "regexp" must be a scalar or a regexp object!' );
-        return;
+    return unless ( $self->args_are_valid( $args ) );
+
+    $self->{_regexp}      = $args->{regexp};
+    $self->{_replacement} = $args->{replacement};
+    $self->{_placeholder} = $args->{placeholder};
+    $self->{_modifier}    = $args->{modifier};
+
+    # $self->_adjust_placeholder_attribute();
+    $self->_adjust_regexp_attribute();
+
+    foreach my $field ( @ACCESSORS ) {
+        $self->_mk_accessor( $field );
     }
 
-    foreach my $accessor ( @ACCESSORS ) {
-        if ( $accessor eq 'regexp' || $accessor eq 'restore_pattern' ) {
-            if (
-                ref( $in_ref->{$accessor} ) and
-                ref( $in_ref->{$accessor} ) ne 'Regexp'
-            ) {
-                carp( 'Value for key "' . $accessor . '" must be a scalar or a regexp object!' );
-                return;
-            }
-        }
-        elsif ( $accessor eq 'replacement' || $accessor eq 'store' ) {
-            if (
-                ref( $in_ref->{$accessor} ) and
-                ref( $in_ref->{$accessor} ) ne 'CODE'
-            ) {
-                carp( 'Value for key "' . $accessor . '" must be a scalar or a code reference!' );
-                return;
-            }
-        }
-    }
+    return $self;
+}
 
-    if ( ref( $in_ref->{modifier} ) ) {
-        carp( 'Value for key "modifier" must be a scalar!' );
-        return;
-    }
+sub _adjust_regexp_attribute {
+    my ( $self ) = @_;
 
-    $self->{_regexp}            = $in_ref->{regexp};
-    $self->{_replacement}       = defined( $in_ref->{store} ) ? (
-        $in_ref->{restore_pattern} ? $in_ref->{replacement} : sub {
-            return sprintf( "\x01%d\x01", $_[0]->{store_index} );
-        }
-    ) : $in_ref->{replacement};
-    $self->{_store}             = $in_ref->{store};
-
-    if ( defined( $in_ref->{modifier} ) || ! ref( $in_ref->{regexp} ) ) {
-        my $modifier = defined( $in_ref->{modifier} ) ? $in_ref->{modifier} : 'sm';
+    if ( defined( $self->{_modifier} ) || !ref( $self->{_regexp} ) ) {
+        my $modifier = defined( $self->{_modifier} ) ? $self->{_modifier} : 'sm';
 
         $self->{_regexp} =~ s/^\(\?[\^dlupimsx-]+:(.*)\)$/$1/si;
         $self->{_regexp} = sprintf( '(?%s:%s)', $modifier, $self->{_regexp} );
     }
+}
 
-    my $restore_pattern         = $in_ref->{restore_pattern} || qr~\x01(\d+)\x01~;
-    $self->{_restore_pattern}   = qr/$restore_pattern/;
+# sub _adjust_restore_pattern_attribute {
+#     my ( $self ) = @_;
 
-    return $self;
+#     my $restore_pattern = $self->{_restore_pattern} || qr~\x01(\d+)\x01~;
+#     $self->{_restore_pattern} = qr/$restore_pattern/;
+# }
+
+# sub _adjust_placeholder_attribute {
+#     my ( $self ) = @_;
+
+#     unless ( defined( $self->{_placeholder} ) ) {
+#         $self->{_placeholder} = sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); };
+#     }
+# }
+
+sub args_are_valid {
+    my ( $self, $args ) = @_;
+
+    unless ( ref( $args ) eq 'HASH' ) {
+        carp( 'Args must be a hashref!' );
+
+        return 0;
+    }
+
+    unless ( exists( $args->{regexp} ) && $args->{regexp} ) {
+        carp( 'Value for key "regexp" must be given!' );
+        return 0;
+    }
+
+    foreach my $accessor ( 'regexp' ) {
+        if (    exists( $args->{$accessor} )
+            and ref( $args->{$accessor} )
+            and ref( $args->{$accessor} ) ne 'Regexp' )
+        {
+            carp( 'Value for key "' . $accessor . '" must be a scalar or a regexp object!' );
+            return 0;
+        }
+    }
+    foreach my $accessor ( 'replacement', 'placeholder' ) {
+        if (    exists( $args->{$accessor} )
+            and ref( $args->{$accessor} )
+            and ref( $args->{$accessor} ) ne 'CODE' )
+        {
+            carp( 'Value for key "' . $accessor . '" must be a scalar or a code reference!' );
+            return 0;
+        }
+    }
+
+    if ( exists( $args->{modifier} ) && ref( $args->{modifier} ) ) {
+        carp( 'Value for key "modifier" must be a scalar!' );
+        return 0;
+    }
+
+    return 1;
+}
+
+sub _mk_accessor {
+    my ( $self, $var ) = @_;
+
+    no strict 'refs';    ## no critic
+
+    return if ( defined *{ __PACKAGE__ . '::' . $var }{CODE} );
+
+    *{ __PACKAGE__ . '::' . $var } = sub {
+        return $_[0]->{ '_' . $var };
+    };
 }
 
 1;
