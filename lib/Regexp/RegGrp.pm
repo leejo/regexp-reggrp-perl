@@ -17,73 +17,103 @@ use constant {
     ESCAPE_BRACKETS => qr~(?<!\\)\[[^\]]+(?<!\\)\]|\(\?([\^dlupimsx-]+:|[:=!><])~,
     ESCAPE_CHARS    => qr~\\.~,
     BRACKETS        => qr~\(~,
-    BACK_REF        => qr~(?:\\g?(\d\d*)|\\g\{(\d+)\})~
+    BACK_REF        => qr~(?:\\g?(\d+)|\\g\{(\d+)\})~
 };
 
 # =========================================================================== #
 
-our $VERSION = '1.002001';
+our $VERSION = '1.003_002';
 
 sub new {
-    my ( $class, $args )  = @_;
-    my $self                = {};
+    my ( $class, $args ) = @_;
+    my $self = {};
 
     bless( $self, $class );
 
     return unless ( $self->args_are_valid( $args ) );
 
     $self->{_restore_pattern} = $args->{restore_pattern};
-    $self->{_reggrp} = $args->{reggrp};
+    $self->{_reggrp}          = $args->{reggrp};
 
-    $self->create_reggrp_objects();
+    $self->_create_reggrp_objects();
     $self->_adjust_restore_pattern_attribute();
 
-    my $offset  = 1;
-    my $midx    = 0;
-
-    # In perl versions < 5.10 hash %+ doesn't exist, so we have to initialize it
-    $self->{_re_str} = ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join(
-        '|',
-        map {
-            my $re = $_->regexp();
-            # Count backref brackets
-            $re =~ s/${\(ESCAPE_CHARS)}//g;
-            $re =~ s/${\(ESCAPE_BRACKETS)}//g;
-            my @nparen = $re =~ /${\(BRACKETS)}/g;
-
-            $re = $_->regexp();
-
-            my $backref_pattern = '\\g{%d}';
-
-            if ( $] < 5.010000 ) {
-                $backref_pattern = '\\%d';
-            }
-
-            $re =~ s/${\(BACK_REF)}/sprintf( $backref_pattern, $offset + ( $1 || $2 ) )/eg;
-
-            my $ret;
-
-            if ( $] < 5.010000 ) {
-                # In perl versions < 5.10 we need to fill %+ hash manually
-                # perl 5.8 doesn't reset the %+ hash correctly if there are zero-length submatches
-                # so this is also done here
-                $ret = '(' . $re . ')' . '(?{ %+ = ( \'_' . $midx++ . '\' => $^N ); })';
-            }
-            else {
-                $ret = '(?\'_' . $midx++ . '\'' . $re . ')';
-            }
-
-            $offset += scalar( @nparen ) + 1;
-
-            $ret;
-
-        } $self->reggrp_array()
-    );
+    $self->_create_regexp_string();
 
     return $self;
 }
 
-sub create_reggrp_objects {
+sub _create_regexp_string {
+    my ( $self ) = @_;
+
+    my $offset      = 1;
+    my $match_index = 0;
+
+    my @reggrp = $self->reggrp_array();
+
+    my @data_regexp_strings = ();
+
+    foreach my $reggrp_data ( @reggrp ) {
+        my $data_regexp_string = $self->_create_data_regexp_string( $reggrp_data, $offset, $match_index );
+
+        push( @data_regexp_strings, $data_regexp_string );
+
+        $offset = $self->_calculate_backref_offset( $reggrp_data, $offset );
+        $match_index++;
+    }
+
+    # In perl versions < 5.10 hash %+ doesn't exist, so we have to initialize it
+    $self->{_re_str} = ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join( '|', @data_regexp_strings );
+}
+
+sub _calculate_backref_offset {
+    my ( $self, $reggrp_data, $offset ) = @_;
+
+    my $regexp = $reggrp_data->regexp();
+
+    # Count backref brackets
+    $regexp =~ s/${\(ESCAPE_CHARS)}//g;
+    $regexp =~ s/${\(ESCAPE_BRACKETS)}//g;
+    my @nparen = $regexp =~ /${\(BRACKETS)}/g;
+
+    $offset += scalar( @nparen ) + 1;
+
+    return $offset;
+}
+
+sub _create_data_regexp_string {
+    my ( $self, $data, $offset, $match_index ) = @_;
+
+    my $regexp = $data->regexp();
+
+    my $backreference_regexp = $regexp;
+
+    # Count backref brackets
+    $backreference_regexp =~ s/${\(ESCAPE_CHARS)}//g;
+    $backreference_regexp =~ s/${\(ESCAPE_BRACKETS)}//g;
+    my @nparen = $backreference_regexp =~ /${\(BRACKETS)}/g;
+
+    my $backref_pattern = '\\g{%d}';
+
+    if ( $] < 5.010000 ) {
+        $backref_pattern = '\\%d';
+    }
+
+    $regexp =~ s/${\(BACK_REF)}/sprintf( $backref_pattern, $offset + ( $1 || $2 ) )/eg;
+
+    if ( $] < 5.010000 ) {
+
+        # In perl versions < 5.10 we need to fill %+ hash manually
+        # perl 5.8 doesn't reset the %+ hash correctly if there are zero-length submatches
+        # so this is also done here
+        return '(' . $regexp . ')' . '(?{ %+ = ( \'_' . $match_index . '\' => $^N ); })';
+    }
+    else {
+        return '(?\'_' . $match_index . '\'' . $regexp . ')';
+    }
+}
+
+sub _create_reggrp_objects {
     my ( $self ) = @_;
 
     my $no = 0;
@@ -91,7 +121,7 @@ sub create_reggrp_objects {
     map {
         $no++;
 
-        unless ( $self->create_reggrp_object( $_ ) ) {
+        unless ( $self->_create_reggrp_object( $_ ) ) {
             carp( 'RegGrp No ' . $no . ' in arrayref is malformed!' );
             return 0;
         }
@@ -101,15 +131,15 @@ sub create_reggrp_objects {
     return 1;
 }
 
-sub create_reggrp_object {
+sub _create_reggrp_object {
     my ( $self, $args ) = @_;
 
     my $reggrp_data = Regexp::RegGrp::Data->new(
         {
-            regexp          => $args->{regexp},
-            replacement     => $args->{replacement},
-            placeholder           => $args->{placeholder},
-            modifier        => $args->{modifier}
+            regexp      => $args->{regexp},
+            replacement => $args->{replacement},
+            placeholder => $args->{placeholder},
+            modifier    => $args->{modifier}
         }
     );
 
@@ -136,8 +166,8 @@ sub args_are_valid {
     }
 
     unless ( exists( $args->{reggrp} ) ) {
-            carp( 'Key "reggrp" does not exist in input hashref!' );
-            return 0;
+        carp( 'Key "reggrp" does not exist in input hashref!' );
+        return 0;
     }
 
     if ( ref( $args->{reggrp} ) ne 'ARRAY' ) {
@@ -145,10 +175,9 @@ sub args_are_valid {
         return 0;
     }
 
-    if (
-        ref( $args->{restore_pattern} ) and
-        ref( $args->{restore_pattern} ) ne 'Regexp'
-    ) {
+    if (    ref( $args->{restore_pattern} )
+        and ref( $args->{restore_pattern} ) ne 'Regexp' )
+    {
         carp( 'Value for key "restore_pattern" must be a scalar or regexp!' );
         return 0;
     }
@@ -181,7 +210,7 @@ sub restore_pattern {
 sub store_data_add {
     my ( $self, $data ) = @_;
 
-    push( @{$self->{_store_data}}, $data );
+    push( @{ $self->{_store_data} }, $data );
 }
 
 sub store_data_by_idx {
@@ -193,7 +222,7 @@ sub store_data_by_idx {
 sub store_data_count {
     my $self = shift;
 
-    return scalar( @{$self->{_store_data} || []} );
+    return scalar( @{ $self->{_store_data} || [] } );
 }
 
 sub flush_stored {
@@ -209,13 +238,13 @@ sub flush_stored {
 sub reggrp_add {
     my ( $self, $reggrp ) = @_;
 
-    push( @{$self->{_reggrps}}, $reggrp );
+    push( @{ $self->{_reggrps} }, $reggrp );
 }
 
 sub reggrp_array {
     my $self = shift;
 
-    return @{$self->{_reggrps}};
+    return @{ $self->{_reggrps} };
 }
 
 sub reggrp_by_idx {
@@ -241,8 +270,8 @@ sub exec {
         return undef;
     }
 
-    my $to_process  = \'';
-    my $cont        = 'void';
+    my $to_process = \'';
+    my $cont       = 'void';
 
     if ( defined( wantarray ) ) {
         my $tmp_input = ${$input};
@@ -263,12 +292,12 @@ sub exec {
 sub _process {
     my ( $self, $args ) = @_;
 
-    my %match_hash  = %{$args->{match_hash}};
-    my $opts        = $args->{opts};
+    my %match_hash = %{ $args->{match_hash} };
+    my $opts       = $args->{opts};
 
-    my $match_key   = ( keys( %match_hash ) )[0];
-    my ( $midx )    = $match_key =~ /^_(\d+)$/;
-    my $match       = $match_hash{$match_key};
+    my $match_key = ( keys( %match_hash ) )[0];
+    my ( $midx ) = $match_key =~ /^_(\d+)$/;
+    my $match = $match_hash{$match_key};
 
     my $reggrp = $self->reggrp_by_idx( $midx );
 
@@ -279,18 +308,17 @@ sub _process {
 
     my $replacement = $reggrp->replacement();
 
-    if (
-        defined( $replacement ) and
-        not ref( $replacement )
-    ) {
+    if ( defined( $replacement )
+        and not ref( $replacement ) )
+    {
         $ret = $replacement;
     }
     elsif ( ref( $replacement ) eq 'CODE' ) {
         $ret = $replacement->(
             {
-                match       => $match,
-                submatches  => \@submatches,
-                opts        => $opts,
+                match      => $match,
+                submatches => \@submatches,
+                opts       => $opts,
             }
         );
     }
@@ -306,9 +334,9 @@ sub _process {
         elsif ( ref( $placeholder ) eq 'CODE' ) {
             $ret = $placeholder->(
                 {
-                    match       => $match,
-                    submatches  => \@submatches,
-                    opts        => $opts,
+                    match             => $match,
+                    submatches        => \@submatches,
+                    opts              => $opts,
                     placeholder_index => $self->store_data_count()
                 }
             );
@@ -318,7 +346,7 @@ sub _process {
     }
 
     return $ret;
-};
+}
 
 sub restore_stored {
     my ( $self, $input ) = @_;
@@ -328,8 +356,8 @@ sub restore_stored {
         return undef;
     }
 
-    my $to_process  = \'';
-    my $cont        = 'void';
+    my $to_process = \'';
+    my $cont       = 'void';
 
     if ( defined( wantarray ) ) {
         my $tmp_input = ${$input};
@@ -362,7 +390,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 1.002
+Version 1.003_002
 
 =head1 DESCRIPTION
 
