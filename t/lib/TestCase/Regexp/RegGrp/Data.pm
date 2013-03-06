@@ -7,6 +7,45 @@ use Test::Class::Most parent => 'TestCase';
 
 use Regexp::RegGrp::Data;
 
+sub test__adjust_regexp_attribute : Tests() {
+    my $mocked_data = Test::MockModule->new( 'Regexp::RegGrp::Data' );
+
+    $mocked_data->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = {};
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $data = Regexp::RegGrp::Data->new();
+
+    $data->{_regexp} = qr/Foo/;
+    $data->_adjust_regexp_attribute();
+    is( $data->regexp(), ( $] < 5.013006 ) ? '(?-xism:Foo)' : '(?^:Foo)', 'Test regexp is a regexp object.' );
+
+    $data->{_regexp} = 'Foo';
+    $data->_adjust_regexp_attribute();
+    is( $data->regexp(), '(?sm:Foo)', 'Test regexp is a scalar.' );
+
+    $data->{_regexp} = qr/Foo/;
+    $data->{_modifier} = 's';
+    $data->_adjust_regexp_attribute();
+    is( $data->regexp(), '(?s:Foo)', 'regexp is a regexp object and modifier is set.' );
+
+    $data->{_regexp} = 'Foo';
+    $data->{_modifier} = 's';
+    $data->_adjust_regexp_attribute();
+    is( $data->regexp(), '(?s:Foo)', 'Test regexp is a scalar and modifier is set.' );
+
+    $mocked_data->unmock_all();
+}
+
 sub test__args_are_valid : Tests() {
     my $mocked_data = Test::MockModule->new( 'Regexp::RegGrp::Data' );
 
@@ -69,6 +108,8 @@ sub test__args_are_valid : Tests() {
         'Test "modifier" value.'
     );
     ok( $data->_args_are_valid( { regexp => 'Foo', modifier => 'g' } ), 'Test "modifier" value.' );
+
+    $mocked_data->unmock_all();
 }
 
 sub regexp_tests : Tests() {
