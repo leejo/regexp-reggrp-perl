@@ -7,6 +7,70 @@ use Test::Class::Most parent => 'TestCase';
 
 use Regexp::RegGrp::Data;
 
+sub test__args_are_valid : Tests() {
+    my $mocked_data = Test::MockModule->new( 'Regexp::RegGrp::Data' );
+
+    $mocked_data->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = {};
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $data = Regexp::RegGrp::Data->new();
+
+    warning_is( sub { $data->_args_are_valid() }, 'Args must be a hashref!', 'Check for hashref.' );
+    warning_is( sub { $data->_args_are_valid( {} ) }, 'Value for key "regexp" must be given!', 'Test presence of key "regexp".' );
+    warning_is( sub { $data->_args_are_valid( { regexp => [] } ) }, 'Value for key "regexp" must be a scalar or a regexp object!', 'Test "regexp" value.' );
+    ok( $data->_args_are_valid( { regexp => 'Foo' } ),   'Test "regexp" value.' );
+    ok( $data->_args_are_valid( { regexp => qr/Foo/ } ), 'Test "regexp" value.' );
+
+    warning_is(
+        sub { $data->_args_are_valid( { regexp => 'Foo', replacement => [] } ) },
+        'Value for key "replacement" must be a scalar or a code reference!',
+        'Test "replacement" value.'
+    );
+    ok( $data->_args_are_valid( { regexp => 'Foo', replacement => 'Bar' } ), 'Test "replacement" value.' );
+    ok(
+        $data->_args_are_valid(
+            {
+                regexp      => 'Foo',
+                replacement => sub { return 'Bar'; }
+            }
+        ),
+        'Test "replacement" value.'
+    );
+
+    warning_is(
+        sub { $data->_args_are_valid( { regexp => 'Foo', placeholder => [] } ) },
+        'Value for key "placeholder" must be a scalar or a code reference!',
+        'Test "placeholder" value.'
+    );
+    ok( $data->_args_are_valid( { regexp => 'Foo', placeholder => 'Bar' } ), 'Test "placeholder" value.' );
+    ok(
+        $data->_args_are_valid(
+            {
+                regexp      => 'Foo',
+                placeholder => sub { return 'Bar'; }
+            }
+        ),
+        'Test "placeholder" value.'
+    );
+
+    warning_is(
+        sub { $data->_args_are_valid( { regexp => 'Foo', modifier => [] } ) },
+        'Value for key "modifier" must be a scalar!',
+        'Test "modifier" value.'
+    );
+    ok( $data->_args_are_valid( { regexp => 'Foo', modifier => 'g' } ), 'Test "modifier" value.' );
+}
+
 sub regexp_tests : Tests() {
     my $regexp_tests = _get_regexp_tests();
 

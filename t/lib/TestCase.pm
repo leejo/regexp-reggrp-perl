@@ -4,6 +4,7 @@ use strict;
 use warnings;
 
 use Test::Class::Most;
+use Test::MockModule;
 
 sub startup : Tests(startup) {
 }
