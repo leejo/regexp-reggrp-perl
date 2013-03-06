@@ -18,14 +18,13 @@ sub new {
 
     bless( $self, $class );
 
-    return unless ( $self->args_are_valid( $args ) );
+    return unless ( $self->_args_are_valid( $args ) );
 
     $self->{_regexp}      = $args->{regexp};
     $self->{_replacement} = $args->{replacement};
     $self->{_placeholder} = $args->{placeholder};
     $self->{_modifier}    = $args->{modifier};
 
-    # $self->_adjust_placeholder_attribute();
     $self->_adjust_regexp_attribute();
 
     foreach my $field ( @ACCESSORS ) {
@@ -46,22 +45,7 @@ sub _adjust_regexp_attribute {
     }
 }
 
-# sub _adjust_restore_pattern_attribute {
-#     my ( $self ) = @_;
-
-#     my $restore_pattern = $self->{_restore_pattern} || qr~\x01(\d+)\x01~;
-#     $self->{_restore_pattern} = qr/$restore_pattern/;
-# }
-
-# sub _adjust_placeholder_attribute {
-#     my ( $self ) = @_;
-
-#     unless ( defined( $self->{_placeholder} ) ) {
-#         $self->{_placeholder} = sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); };
-#     }
-# }
-
-sub args_are_valid {
+sub _args_are_valid {
     my ( $self, $args ) = @_;
 
     unless ( ref( $args ) eq 'HASH' ) {
@@ -75,15 +59,14 @@ sub args_are_valid {
         return 0;
     }
 
-    foreach my $accessor ( 'regexp' ) {
-        if (    exists( $args->{$accessor} )
-            and ref( $args->{$accessor} )
-            and ref( $args->{$accessor} ) ne 'Regexp' )
-        {
-            carp( 'Value for key "' . $accessor . '" must be a scalar or a regexp object!' );
-            return 0;
-        }
+    if (    exists( $args->{regexp} )
+        and ref( $args->{regexp} )
+        and ref( $args->{regexp} ) ne 'Regexp' )
+    {
+        carp( 'Value for key "regexp" must be a scalar or a regexp object!' );
+        return 0;
     }
+
     foreach my $accessor ( 'replacement', 'placeholder' ) {
         if (    exists( $args->{$accessor} )
             and ref( $args->{$accessor} )
