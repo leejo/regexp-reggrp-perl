@@ -7,6 +7,20 @@ use Test::Class::Most parent => 'TestCase';
 
 use Regexp::RegGrp::Data;
 
+sub constructor_test : Tests() {
+    my $mocked_data = Test::MockModule->new( 'Regexp::RegGrp::Data' );
+
+    $mocked_data->mock( '_args_are_valid', sub { return 0; } );
+    ok( ! Regexp::RegGrp::Data->new() );
+
+    $mocked_data->unmock_all();
+
+    my $data = Regexp::RegGrp::Data->new( { regexp => qr/Foo/ } );
+
+    isa_ok( $data, 'Regexp::RegGrp::Data' );
+    can_ok( $data, ( 'regexp', 'replacement', 'placeholder' ) );
+}
+
 sub test__adjust_regexp_attribute : Tests() {
     my $mocked_data = Test::MockModule->new( 'Regexp::RegGrp::Data' );
 
