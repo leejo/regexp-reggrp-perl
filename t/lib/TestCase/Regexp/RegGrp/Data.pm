@@ -87,11 +87,7 @@ sub regexp_tests : Tests() {
         }
 
         if ( $data ) {
-            cmp_ok(
-                $data->regexp(), 'eq',
-                $test->{output}->{regexp},
-                'Field "regexp" correctly set' . ( $test->{message} ? ' - ' . $test->{message} : '' )
-            );
+            cmp_ok( $data->regexp(), 'eq', $test->{output}->{regexp}, 'Field "regexp" correctly set' . ( $test->{message} ? ' - ' . $test->{message} : '' ) );
         }
     }
 }
@@ -181,54 +177,42 @@ sub modifier_tests : Tests() {
         }
 
         if ( $data ) {
-            cmp_ok(
-                $data->regexp(), 'eq',
-                $test->{output}->{regexp},
-                'Field "regexp" correctly set' . ( $test->{message} ? ' - ' . $test->{message} : '' )
-            );
+            cmp_ok( $data->regexp(), 'eq', $test->{output}->{regexp}, 'Field "regexp" correctly set' . ( $test->{message} ? ' - ' . $test->{message} : '' ) );
         }
     }
 }
 
 sub _get_modifier_tests {
     return [
-    {
-        input   => {
-            regexp      => '(a)(.+?)(\1)',
-            modifier    => { regexp => qr/(a)(.+?)(\1)/ },
+        {
+            input => {
+                regexp   => '(a)(.+?)(\1)',
+                modifier => { regexp => qr/(a)(.+?)(\1)/ },
+            },
+            output  => undef,
+            message => 'modifier is a hashref',
+            warning => 'Value for key "modifier" must be a scalar!',
         },
-        output  => undef,
-        message => 'modifier is a hashref',
-        warning => 'Value for key "modifier" must be a scalar!',
-    },
-    {
-        input   => {
-            regexp      => '(a)(.+?)(\1)',
-            modifier    => \'xsm',
+        {
+            input => {
+                regexp   => '(a)(.+?)(\1)',
+                modifier => \'xsm',
+            },
+            output  => undef,
+            message => 'modifier is a scalarref',
+            warning => 'Value for key "modifier" must be a scalar!',
         },
-        output  => undef,
-        message => 'modifier is a scalarref',
-        warning => 'Value for key "modifier" must be a scalar!',
-    },
-    {
-        input   => {
-            regexp => '(a)(.+?)(\1)',
+        {
+            input   => { regexp => '(a)(.+?)(\1)', },
+            output  => { regexp => '(?sm:(a)(.+?)(\1))' },
+            message => 'modifier is undefined and regexp is a scalar'
         },
-        output  => {
-            regexp => '(?sm:(a)(.+?)(\1))'
+        {
+            input  => { regexp => qr/(a)(.+?)(\1)/, },
+            output => { regexp => ( $] < 5.013006 ) ? '(?-xism:(a)(.+?)(\1))' : '(?^:(a)(.+?)(\1))' },
+            message => 'modifier is undefined and regexp is a regexp object'
         },
-        message => 'modifier is undefined and regexp is a scalar'
-    },
-    {
-        input   => {
-            regexp => qr/(a)(.+?)(\1)/,
-        },
-        output  => {
-            regexp => ( $] < 5.013006 ) ? '(?-xism:(a)(.+?)(\1))' : '(?^:(a)(.+?)(\1))'
-        },
-        message => 'modifier is undefined and regexp is a regexp object'
-    },
-];
+    ];
 }
 
 sub _get_placeholder_tests {
