@@ -175,7 +175,8 @@ sub _args_are_valid {
         return 0;
     }
 
-    if (    ref( $args->{restore_pattern} )
+    if (    exists( $args->{restore_pattern} )
+        and ref( $args->{restore_pattern} )
         and ref( $args->{restore_pattern} ) ne 'Regexp' )
     {
         carp( 'Value for key "restore_pattern" must be a scalar or regexp!' );
@@ -325,7 +326,7 @@ sub _process {
 
     my $placeholder = $reggrp->placeholder();
 
-    if ( $placeholder ) {
+    if ( defined( $placeholder ) ) {
         my $store = $ret;
 
         if ( not ref( $placeholder ) ) {

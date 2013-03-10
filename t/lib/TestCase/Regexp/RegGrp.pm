@@ -7,6 +7,54 @@ use Test::Class::Most parent => 'TestCase';
 
 use Regexp::RegGrp;
 
+sub test__args_are_valid : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = {};
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+
+    my $ret;
+    warning_is( sub { $ret = $reggrp->_args_are_valid() }, 'First argument must be a hashref!' );
+    is( $ret , 0 );
+    warning_is( sub { $ret = $reggrp->_args_are_valid( {} ) }, 'Key "reggrp" does not exist in input hashref!' );
+    is( $ret , 0 );
+    warning_is( sub { $ret = $reggrp->_args_are_valid( { reggrp => {} } ) }, 'Value for key "reggrp" must be an arrayref!' );
+    is( $ret , 0 );
+    is( $reggrp->_args_are_valid( { reggrp => [] } ), 1 );
+
+    is( $reggrp->_args_are_valid( { reggrp => [], restore_pattern => undef } ), 1 );
+
+    warning_is(
+        sub { $ret = $reggrp->_args_are_valid( { reggrp => [], restore_pattern => [] } ) },
+        'Value for key "restore_pattern" must be a scalar or regexp!',
+        'Test "restore_pattern" value.'
+    );
+    is( $ret, 0 );
+    is( $reggrp->_args_are_valid( { reggrp => [], restore_pattern => 'Bar' } ), 1, 'Test "restore_pattern" value.' );
+    is(
+        $reggrp->_args_are_valid(
+            {
+                reggrp      => [],
+                restore_pattern => qr/Bar/,
+            }
+        ),
+        1,
+        'Test "restore_pattern" value.'
+    );
+}
+
 sub io_test : Tests() {
     my $test_cases = _get_test_cases();
 

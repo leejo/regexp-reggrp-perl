@@ -68,9 +68,9 @@ sub _args_are_valid {
     }
 
     foreach my $accessor ( 'replacement', 'placeholder' ) {
-        if (    exists( $args->{$accessor} )
-            and ref( $args->{$accessor} )
-            and ref( $args->{$accessor} ) ne 'CODE' )
+        if (   exists( $args->{$accessor} )
+            && ref( $args->{$accessor} )
+            && ref( $args->{$accessor} ) ne 'CODE' )
         {
             carp( 'Value for key "' . $accessor . '" must be a scalar or a code reference!' );
             return 0;
