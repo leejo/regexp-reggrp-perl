@@ -30,7 +30,7 @@ sub new {
 
     bless( $self, $class );
 
-    return unless ( $self->args_are_valid( $args ) );
+    return unless ( $self->_args_are_valid( $args ) );
 
     $self->{_restore_pattern} = $args->{restore_pattern};
     $self->{_reggrp}          = $args->{reggrp};
@@ -157,7 +157,7 @@ sub _adjust_restore_pattern_attribute {
     $self->{_restore_pattern} = qr/$restore_pattern/;
 }
 
-sub args_are_valid {
+sub _args_are_valid {
     my ( $self, $args ) = @_;
 
     if ( ref( $args ) ne 'HASH' ) {
