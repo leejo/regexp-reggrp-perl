@@ -34,6 +34,7 @@ sub new {
 
     $self->{_restore_pattern} = $args->{restore_pattern};
     $self->{_reggrp}          = $args->{reggrp};
+    $self->{_reggrps}         = [];
 
     $self->_create_reggrp_objects();
     $self->_adjust_restore_pattern_attribute();
@@ -63,7 +64,7 @@ sub _create_regexp_string {
     }
 
     # In perl versions < 5.10 hash %+ doesn't exist, so we have to initialize it
-    $self->{_re_str} = ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join( '|', @data_regexp_strings );
+    $self->set_re_str( ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join( '|', @data_regexp_strings ) );
 }
 
 sub _calculate_backref_offset {
@@ -118,15 +119,14 @@ sub _create_reggrp_objects {
 
     my $no = 0;
 
-    map {
+    foreach my $reggrp ( @{ $self->{_reggrp} } ) {
         $no++;
 
-        unless ( $self->_create_reggrp_object( $_ ) ) {
+        unless ( $self->_create_reggrp_object( $reggrp ) ) {
             carp( 'RegGrp No ' . $no . ' in arrayref is malformed!' );
             return 0;
         }
-
-    } @{ $self->{_reggrp} };
+    }
 
     return 1;
 }
@@ -188,7 +188,13 @@ sub _args_are_valid {
 
 # re_str methods
 
-sub re_str {
+sub set_re_str {
+    my ( $self, $re_str ) = @_;
+
+    $self->{_re_str} = $re_str;
+}
+
+sub get_re_str {
     my $self = shift;
 
     return $self->{_re_str};
@@ -206,33 +212,33 @@ sub restore_pattern {
 
 # /restore_pattern methods
 
-# store_data methods
+# replacements methods
 
-sub store_data_add {
+sub replacements_add {
     my ( $self, $data ) = @_;
 
-    push( @{ $self->{_store_data} }, $data );
+    push( @{ $self->{_replacements} }, $data );
 }
 
-sub store_data_by_idx {
+sub replacements_by_idx {
     my ( $self, $idx ) = @_;
 
-    return $self->{_store_data}->[$idx];
+    return $self->{_replacements}->[$idx];
 }
 
-sub store_data_count {
+sub replacements_count {
     my $self = shift;
 
-    return scalar( @{ $self->{_store_data} || [] } );
+    return scalar( @{ $self->{_replacements} || [] } );
 }
 
-sub flush_stored {
+sub replacements_flush {
     my $self = shift;
 
-    $self->{_store_data} = [];
+    $self->{_replacements} = [];
 }
 
-# /store_data methods
+# /replacements methods
 
 # reggrp methods
 
@@ -284,7 +290,7 @@ sub exec {
         $to_process = $input;
     }
 
-    ${$to_process} =~ s/${\$self->re_str()}/$self->_process( { match_hash => \%+, opts => $opts } )/eg;
+    ${$to_process} =~ s/${\$self->get_re_str()}/$self->_process( { match_hash => \%+, opts => $opts } )/eg;
 
     # Return a scalar if requested by context
     return ${$to_process} if ( $cont eq 'scalar' );
@@ -338,12 +344,12 @@ sub _process {
                     match             => $match,
                     submatches        => \@submatches,
                     opts              => $opts,
-                    placeholder_index => $self->store_data_count()
+                    placeholder_index => $self->replacements_count()
                 }
             );
         }
 
-        $self->store_data_add( $store );
+        $self->replacements_add( $store );
     }
 
     return $ret;
@@ -372,10 +378,10 @@ sub restore_stored {
 
     # Here is a while loop, because there could be recursive replacements
     while ( ${$to_process} =~ /${\$self->restore_pattern()}/ ) {
-        ${$to_process} =~ s/${\$self->restore_pattern()}/$self->store_data_by_idx( $1 )/egsm;
+        ${$to_process} =~ s/${\$self->restore_pattern()}/$self->replacements_by_idx( $1 )/egsm;
     }
 
-    $self->flush_stored();
+    $self->replacements_flush();
 
     # Return a scalar if requested by context
     return ${$to_process} if ( $cont eq 'scalar' );

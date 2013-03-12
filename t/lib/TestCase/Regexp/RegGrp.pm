@@ -6,6 +6,163 @@ use warnings;
 use Test::Class::Most parent => 'TestCase';
 
 use Regexp::RegGrp;
+use Regexp::RegGrp::Data;
+
+sub test__adjust_restore_pattern_attribute : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = { _restore_pattern => undef };
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+
+
+
+    $mocked_reggrp->unmock_all();
+}
+
+sub test__create_reggrp_objects : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = { _reggrps => [], _reggrp => [ {} ] };
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+
+    my $ret;
+    warnings_are( sub { $reggrp->_create_reggrp_objects(); }, [ 'Value for key "regexp" must be given!', 'RegGrp No 1 in arrayref is malformed!' ] );
+    cmp_deeply( [ $reggrp->reggrp_array() ], [] );
+
+    $reggrp->{_reggrp} = [ { regexp => qr/Foo/ } ];
+    $reggrp->_create_reggrp_objects();
+
+    cmp_deeply( [ $reggrp->reggrp_array() ], [ isa( 'Regexp::RegGrp::Data' ) ] );
+
+    $mocked_reggrp->unmock_all();
+}
+
+sub test__create_reggrp_object : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = { _reggrps => [] };
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+
+    my $ret;
+
+    cmp_deeply( [ $reggrp->reggrp_array() ], [] );
+
+    warning_is( sub { $ret = $reggrp->_create_reggrp_object( {} ) }, 'Value for key "regexp" must be given!' );
+    is( $ret, 0 );
+
+    cmp_deeply( [ $reggrp->reggrp_array() ], [] );
+
+    is( $reggrp->_create_reggrp_object( { regexp => qr/Foo/ } ), 1 );
+
+    cmp_deeply( [ $reggrp->reggrp_array() ], [ isa( 'Regexp::RegGrp::Data' ) ] );
+
+    $mocked_reggrp->unmock_all();
+}
+
+sub test_replacements_methods : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = {};
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+
+    is( $reggrp->replacements_count(), 0 );
+
+    $reggrp->replacements_add( 'Foo' );
+    is( $reggrp->replacements_count(), 1 );
+    cmp_deeply( $reggrp->replacements_by_idx( 0 ), 'Foo' );
+
+    $reggrp->replacements_add( 'Bar' );
+    is( $reggrp->replacements_count(), 2 );
+    cmp_deeply( $reggrp->replacements_by_idx( 1 ), 'Bar' );
+
+    $reggrp->replacements_flush();
+    is( $reggrp->replacements_count(), 0 );
+
+    $mocked_reggrp->unmock_all();
+}
+
+sub test_reggrp_methods : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = { _reggrps => [] };
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+
+    cmp_deeply( [ $reggrp->reggrp_array() ], [] );
+
+    my $reggrp_a = Regexp::RegGrp::Data->new( { regexp => qr/Foo/ } );
+    my $reggrp_b = Regexp::RegGrp::Data->new( { regexp => qr/Bar/ } );
+
+    $reggrp->reggrp_add( $reggrp_a );
+    cmp_deeply( [ $reggrp->reggrp_array() ], [$reggrp_a] );
+
+    $reggrp->reggrp_add( $reggrp_b );
+    cmp_deeply( [ $reggrp->reggrp_array() ], [ $reggrp_a, $reggrp_b ] );
+
+    cmp_deeply( $reggrp->reggrp_by_idx( 0 ), $reggrp_a );
+    cmp_deeply( $reggrp->reggrp_by_idx( 1 ), $reggrp_b );
+
+    $mocked_reggrp->unmock_all();
+}
 
 sub test__args_are_valid : Tests() {
     my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
@@ -27,11 +184,11 @@ sub test__args_are_valid : Tests() {
 
     my $ret;
     warning_is( sub { $ret = $reggrp->_args_are_valid() }, 'First argument must be a hashref!' );
-    is( $ret , 0 );
+    is( $ret, 0 );
     warning_is( sub { $ret = $reggrp->_args_are_valid( {} ) }, 'Key "reggrp" does not exist in input hashref!' );
-    is( $ret , 0 );
+    is( $ret, 0 );
     warning_is( sub { $ret = $reggrp->_args_are_valid( { reggrp => {} } ) }, 'Value for key "reggrp" must be an arrayref!' );
-    is( $ret , 0 );
+    is( $ret, 0 );
     is( $reggrp->_args_are_valid( { reggrp => [] } ), 1 );
 
     is( $reggrp->_args_are_valid( { reggrp => [], restore_pattern => undef } ), 1 );
@@ -46,13 +203,15 @@ sub test__args_are_valid : Tests() {
     is(
         $reggrp->_args_are_valid(
             {
-                reggrp      => [],
+                reggrp          => [],
                 restore_pattern => qr/Bar/,
             }
         ),
         1,
         'Test "restore_pattern" value.'
     );
+
+    $mocked_reggrp->unmock_all();
 }
 
 sub io_test : Tests() {
@@ -70,7 +229,7 @@ sub io_test : Tests() {
 
         is( $input, $tc->{expected_output}, $tc->{description} . ' - void context' );
 
-        $reggrp->flush_stored();
+        $reggrp->replacements_flush();
 
         $input = $tc->{input_string};
 
@@ -229,22 +388,22 @@ sub _get_test_cases : Tests() {
             expected_output => "\x01" . '0' . "\x01" . 'bcx' . "\x01" . '1' . "\x01" . 'z',
             reggrp          => [
                 {
-                    regexp => qr/(a)(.+?)(\1)/,
-                    replacement  => sub {
+                    regexp      => qr/(a)(.+?)(\1)/,
+                    replacement => sub {
                         my $in_ref     = shift;
                         my $submatches = $in_ref->{submatches};
                         return sprintf( "%s%s%s", $submatches->[1], $submatches->[0], uc( $submatches->[2] ) );
-                        },
-                        placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); },
+                    },
+                    placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); },
                 },
                 {
-                    regexp => qr/((y)z)(.+)(\2)/,
-                    replacement  => sub {
+                    regexp      => qr/((y)z)(.+)(\2)/,
+                    replacement => sub {
                         my $in_ref     = shift;
                         my $submatches = $in_ref->{submatches};
                         return sprintf( "%s%s%s", $submatches->[0], uc( $submatches->[1] ), $submatches->[3] );
-                        },
-                        placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); },
+                    },
+                    placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); },
                 },
                 {
                     regexp      => qr/f(oo)?/,
@@ -264,22 +423,22 @@ sub _get_test_cases : Tests() {
             test_restore    => 1,
             reggrp          => [
                 {
-                    regexp => qr/(a)(.+?)(\1)/,
-                    replacement  => sub {
+                    regexp      => qr/(a)(.+?)(\1)/,
+                    replacement => sub {
                         my $in_ref     = shift;
                         my $submatches = $in_ref->{submatches};
                         return sprintf( "%s%s%s", $submatches->[1], $submatches->[0], uc( $submatches->[2] ) );
-                        },
-                        placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); },
+                    },
+                    placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); },
                 },
                 {
-                    regexp => qr/((y)z)(.+)(\2)/,
-                    replacement  => sub {
+                    regexp      => qr/((y)z)(.+)(\2)/,
+                    replacement => sub {
                         my $in_ref     = shift;
                         my $submatches = $in_ref->{submatches};
                         return sprintf( "%s%s%s", $submatches->[0], uc( $submatches->[1] ), $submatches->[3] );
-                        },
-                        placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); },
+                    },
+                    placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); },
                 },
                 {
                     regexp      => qr/f(oo)?/,
