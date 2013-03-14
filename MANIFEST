@@ -16,3 +16,6 @@ MANIFEST
 META.yml
 README
 t/tests.t
+t/lib/TestCase.pm
+t/lib/TestCase/Regexp/RegGrp.pm
+t/lib/TestCase/Regexp/RegGrp/Data.pm
