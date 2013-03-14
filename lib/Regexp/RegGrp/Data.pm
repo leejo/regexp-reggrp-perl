@@ -59,8 +59,7 @@ sub _args_are_valid {
         return 0;
     }
 
-    if (    exists( $args->{regexp} )
-        and ref( $args->{regexp} )
+    if (    ref( $args->{regexp} )
         and ref( $args->{regexp} ) ne 'Regexp' )
     {
         carp( 'Value for key "regexp" must be a scalar or a regexp object!' );
