@@ -8,6 +8,34 @@ use Test::Class::Most parent => 'TestCase';
 use Regexp::RegGrp;
 use Regexp::RegGrp::Data;
 
+sub test__calculate_backref_offset : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = { _backref_offset => 1 };
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+    is( $reggrp->{_backref_offset}, 1 );
+
+    $reggrp->_calculate_backref_offset( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ) );
+    is( $reggrp->{_backref_offset}, 5 );
+
+    $reggrp->_calculate_backref_offset( Regexp::RegGrp::Data->new( { regexp => qr/((y)z)(.+)(\g{2})/ } ) );
+    is( $reggrp->{_backref_offset}, 10 );
+
+    $mocked_reggrp->unmock_all();
+}
+
 sub test__adjust_restore_pattern_attribute : Tests() {
     my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
 
@@ -26,7 +54,16 @@ sub test__adjust_restore_pattern_attribute : Tests() {
 
     my $reggrp = Regexp::RegGrp->new();
 
+    $reggrp->_adjust_restore_pattern_attribute();
+    is( $reggrp->{_restore_pattern}, ( $] < 5.013006 ) ? '(?-xism:\x01(\d+)\x01)' : '(?^:\x01(\d+)\x01)' );
 
+    $reggrp->{_restore_pattern} = qr/Foo/;
+    $reggrp->_adjust_restore_pattern_attribute();
+    is( $reggrp->{_restore_pattern}, ( $] < 5.013006 ) ? '(?-xism:Foo)' : '(?^:Foo)' );
+
+    $reggrp->{_restore_pattern} = 'Foo';
+    $reggrp->_adjust_restore_pattern_attribute();
+    is( $reggrp->{_restore_pattern}, ( $] < 5.013006 ) ? '(?-xism:Foo)' : '(?^:Foo)' );
 
     $mocked_reggrp->unmock_all();
 }
@@ -353,7 +390,9 @@ sub _get_test_cases : Tests() {
         {
             description     => 'Regexes with backreferences 2',
             input_string    => 'abcxyzabcxyzabcxyz',
-            expected_output => ( $] < 5.010000 ) ? 'bcxyzaAbcxyzabcxyz' : 'bcxyzaAbcxyzYyz',
+            # expected_output => ( $] < 5.010000 ) ? 'bcxyzaAbcxyzabcxyz' : 'bcxyzaAbcxyzYyz',
+            # WTF!!! Can't believe that I did that
+            expected_output => 'bcxyzaAbcxyzYyz',
             reggrp          => [
                 {
                     regexp      => qr/(a)(.+?)(\1)/,
@@ -378,7 +417,7 @@ sub _get_test_cases : Tests() {
                         my $match      = $in_ref->{match};
                         my $submatches = $in_ref->{submatches};
                         return sprintf( "%s%s", $match, $submatches->[0] );
-                        }
+                    }
                 }
             ]
         },
