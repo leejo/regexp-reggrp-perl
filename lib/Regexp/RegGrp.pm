@@ -35,6 +35,7 @@ sub new {
     $self->{_restore_pattern} = $args->{restore_pattern};
     $self->{_reggrp}          = $args->{reggrp};
     $self->{_reggrps}         = [];
+    $self->{_backref_offset}  = 1;
 
     $self->_create_reggrp_objects();
     $self->_adjust_restore_pattern_attribute();
@@ -47,7 +48,6 @@ sub new {
 sub _create_regexp_string {
     my ( $self ) = @_;
 
-    my $offset      = 1;
     my $match_index = 0;
 
     my @reggrp = $self->reggrp_array();
@@ -55,11 +55,11 @@ sub _create_regexp_string {
     my @data_regexp_strings = ();
 
     foreach my $reggrp_data ( @reggrp ) {
-        my $data_regexp_string = $self->_create_data_regexp_string( $reggrp_data, $offset, $match_index );
+        my $data_regexp_string = $self->_create_data_regexp_string( $reggrp_data, $match_index );
 
         push( @data_regexp_strings, $data_regexp_string );
 
-        $offset = $self->_calculate_backref_offset( $reggrp_data, $offset );
+        $self->_calculate_backref_offset( $reggrp_data );
         $match_index++;
     }
 
@@ -68,31 +68,23 @@ sub _create_regexp_string {
 }
 
 sub _calculate_backref_offset {
-    my ( $self, $reggrp_data, $offset ) = @_;
+    my ( $self, $reggrp_data ) = @_;
 
-    my $regexp = $reggrp_data->regexp();
-
-    # Count backref brackets
-    $regexp =~ s/${\(ESCAPE_CHARS)}//g;
-    $regexp =~ s/${\(ESCAPE_BRACKETS)}//g;
-    my @nparen = $regexp =~ /${\(BRACKETS)}/g;
-
-    $offset += scalar( @nparen ) + 1;
-
-    return $offset;
-}
-
-sub _create_data_regexp_string {
-    my ( $self, $data, $offset, $match_index ) = @_;
-
-    my $regexp = $data->regexp();
-
-    my $backreference_regexp = $regexp;
+    my $backreference_regexp = $reggrp_data->regexp();
 
     # Count backref brackets
     $backreference_regexp =~ s/${\(ESCAPE_CHARS)}//g;
     $backreference_regexp =~ s/${\(ESCAPE_BRACKETS)}//g;
     my @nparen = $backreference_regexp =~ /${\(BRACKETS)}/g;
+
+    my $new_offset = $self->get_backref_offset() + scalar( @nparen ) + 1;
+    $self->set_backref_offset( $new_offset );
+}
+
+sub _create_data_regexp_string {
+    my ( $self, $data, $match_index ) = @_;
+
+    my $regexp = $data->regexp();
 
     my $backref_pattern = '\\g{%d}';
 
@@ -100,7 +92,7 @@ sub _create_data_regexp_string {
         $backref_pattern = '\\%d';
     }
 
-    $regexp =~ s/${\(BACK_REF)}/sprintf( $backref_pattern, $offset + ( $1 || $2 ) )/eg;
+    $regexp =~ s/${\(BACK_REF)}/sprintf( $backref_pattern, $self->get_backref_offset() + ( $1 || $2 ) )/eg;
 
     if ( $] < 5.010000 ) {
 
@@ -184,6 +176,18 @@ sub _args_are_valid {
     }
 
     return 1;
+}
+
+sub get_backref_offset {
+    my ( $self ) = @_;
+
+    return $self->{_backref_offset};
+}
+
+sub set_backref_offset {
+    my ( $self, $backref_offset ) = @_;
+
+    $self->{_backref_offset} = $backref_offset;
 }
 
 # re_str methods
