@@ -6,18 +6,18 @@ use strict;
 use Carp;
 use Regexp::RegGrp::Data;
 
-our $BACK_REF_STR    = ( $] < 5.010000 ) ? '\\\\(\d+)' : '\\\\(\d+)|\\\\g{(\d+)}';
-our $BACK_REF        = qr/$BACK_REF_STR/;
-our $ESCAPE_BRACKETS = qr~(?<!\\)\[[^\]]+(?<!\\)\]|\(\?([\^dlupimsx-]+:|[:=!><])~;
-our $ESCAPE_CHARS    = qr~\\.~;
-our $BRACKETS        = qr~\(~;
-
 BEGIN {
     if ( $] < 5.010000 ) {
         require re;
         re->import( 'eval' );
     }
 }
+
+our $BACK_REF_STR    = ( $] < 5.010000 ) ? '\\\\(\d+)' : '\\\\(\d+)|\\\\g{(\d+)}';
+our $BACK_REF        = qr/$BACK_REF_STR/;
+our $ESCAPE_BRACKETS = qr~(?<!\\)\[[^\]]+(?<!\\)\]|\(\?([\^dlupimsx-]+:|[:=!><])~;
+our $ESCAPE_CHARS    = qr~\\.~;
+our $BRACKETS        = qr~\(~;
 
 # =========================================================================== #
 

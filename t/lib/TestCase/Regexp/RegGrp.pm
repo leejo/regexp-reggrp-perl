@@ -26,7 +26,19 @@ sub test__create_regexp_string : Tests() {
 
     my $reggrp = Regexp::RegGrp->new();
 
+    my $reggrp_a = Regexp::RegGrp::Data->new( { regexp => qr/Foo/ } );
+    my $reggrp_b = Regexp::RegGrp::Data->new( { regexp => qr/Bar/ } );
 
+    $reggrp->reggrp_add( $reggrp_a );
+    $reggrp->reggrp_add( $reggrp_b );
+
+    $reggrp->_create_regexp_string();
+
+    is( $reggrp->get_re_str(),
+        ( $] < 5.010000 )
+        ? '(?{ %+ = (); })((?-xism:Foo))(?{ %+ = ( \'_0\' => $^N ); })|((?-xism:Bar))(?{ %+ = ( \'_1\' => $^N ); })'
+        : '(?\'_0\'(?-xism:Foo))|(?\'_1\'(?-xism:Bar))'
+    );
 
     $mocked_reggrp->unmock_all();
 }
@@ -466,7 +478,7 @@ sub _get_test_cases : Tests() {
                         }
                 },
                 {
-                    regexp      => ( $] < 5.010000 ) ? '((y)z)(.+)(\\2)' : '((y)z)(.+)(\\g{2})',
+                    regexp => ( $] < 5.010000 ) ? '((y)z)(.+)(\\2)' : '((y)z)(.+)(\\g{2})',
                     replacement => sub {
                         my $in_ref     = shift;
                         my $submatches = $in_ref->{submatches};
@@ -480,7 +492,7 @@ sub _get_test_cases : Tests() {
                         my $match      = $in_ref->{match};
                         my $submatches = $in_ref->{submatches};
                         return sprintf( "%s%s", $match, $submatches->[0] );
-                    }
+                        }
                 }
             ]
         },
