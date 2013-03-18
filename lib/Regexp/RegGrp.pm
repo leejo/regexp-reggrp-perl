@@ -6,19 +6,18 @@ use strict;
 use Carp;
 use Regexp::RegGrp::Data;
 
+our $BACK_REF_STR    = ( $] < 5.010000 ) ? '\\\\(\d+)' : '\\\\(\d+)|\\\\g{(\d+)}';
+our $BACK_REF        = qr/$BACK_REF_STR/;
+our $ESCAPE_BRACKETS = qr~(?<!\\)\[[^\]]+(?<!\\)\]|\(\?([\^dlupimsx-]+:|[:=!><])~;
+our $ESCAPE_CHARS    = qr~\\.~;
+our $BRACKETS        = qr~\(~;
+
 BEGIN {
     if ( $] < 5.010000 ) {
         require re;
         re->import( 'eval' );
     }
 }
-
-use constant {
-    ESCAPE_BRACKETS => qr~(?<!\\)\[[^\]]+(?<!\\)\]|\(\?([\^dlupimsx-]+:|[:=!><])~,
-    ESCAPE_CHARS    => qr~\\.~,
-    BRACKETS        => qr~\(~,
-    BACK_REF        => qr~(?:\\g?(\d+)|\\g\{(\d+)\})~
-};
 
 # =========================================================================== #
 
@@ -34,8 +33,9 @@ sub new {
 
     $self->{_restore_pattern} = $args->{restore_pattern};
     $self->{_reggrp}          = $args->{reggrp};
-    $self->{_reggrps}         = [];
-    $self->{_backref_offset}  = 1;
+
+    $self->{_reggrps}        = [];
+    $self->{_backref_offset} = 1;
 
     $self->_create_reggrp_objects();
     $self->_adjust_restore_pattern_attribute();
@@ -73,9 +73,9 @@ sub _calculate_backref_offset {
     my $backreference_regexp = $reggrp_data->regexp();
 
     # Count backref brackets
-    $backreference_regexp =~ s/${\(ESCAPE_CHARS)}//g;
-    $backreference_regexp =~ s/${\(ESCAPE_BRACKETS)}//g;
-    my @nparen = $backreference_regexp =~ /${\(BRACKETS)}/g;
+    $backreference_regexp =~ s/$ESCAPE_CHARS//g;
+    $backreference_regexp =~ s/$ESCAPE_BRACKETS//g;
+    my @nparen = $backreference_regexp =~ /$BRACKETS/g;
 
     my $new_offset = $self->get_backref_offset() + scalar( @nparen ) + 1;
     $self->set_backref_offset( $new_offset );
@@ -92,7 +92,7 @@ sub _create_data_regexp_string {
         $backref_pattern = '\\%d';
     }
 
-    $regexp =~ s/${\(BACK_REF)}/sprintf( $backref_pattern, $self->get_backref_offset() + ( $1 || $2 ) )/eg;
+    $regexp =~ s/$BACK_REF/sprintf( $backref_pattern, $self->get_backref_offset() + ( $1 || $2 ) )/eg;
 
     if ( $] < 5.010000 ) {
 

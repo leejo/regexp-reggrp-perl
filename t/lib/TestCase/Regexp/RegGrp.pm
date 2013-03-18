@@ -30,7 +30,8 @@ sub test__calculate_backref_offset : Tests() {
     $reggrp->_calculate_backref_offset( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ) );
     is( $reggrp->{_backref_offset}, 5 );
 
-    $reggrp->_calculate_backref_offset( Regexp::RegGrp::Data->new( { regexp => qr/((y)z)(.+)(\g{2})/ } ) );
+    my $re_str = ( $] < 5.010000 ) ? '((y)z)(.+)(\\2)' : '((y)z)(.+)(\\g{2})';
+    $reggrp->_calculate_backref_offset( Regexp::RegGrp::Data->new( { regexp => qr/$re_str/ } ) );
     is( $reggrp->{_backref_offset}, 10 );
 
     $mocked_reggrp->unmock_all();
@@ -390,8 +391,6 @@ sub _get_test_cases : Tests() {
         {
             description     => 'Regexes with backreferences 2',
             input_string    => 'abcxyzabcxyzabcxyz',
-            # expected_output => ( $] < 5.010000 ) ? 'bcxyzaAbcxyzabcxyz' : 'bcxyzaAbcxyzYyz',
-            # WTF!!! Can't believe that I did that
             expected_output => 'bcxyzaAbcxyzYyz',
             reggrp          => [
                 {
@@ -403,7 +402,7 @@ sub _get_test_cases : Tests() {
                         }
                 },
                 {
-                    regexp      => qr/((y)z)(.+)(\g{2})/,
+                    regexp      => ( $] < 5.010000 ) ? '((y)z)(.+)(\\2)' : '((y)z)(.+)(\\g{2})',
                     replacement => sub {
                         my $in_ref     = shift;
                         my $submatches = $in_ref->{submatches};
