@@ -8,6 +8,70 @@ use Test::Class::Most parent => 'TestCase';
 use Regexp::RegGrp;
 use Regexp::RegGrp::Data;
 
+sub test__create_regexp_string : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = { _backref_offset => 1 };
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+
+
+
+    $mocked_reggrp->unmock_all();
+}
+
+sub test__create_data_regexp_string : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = { _backref_offset => 1 };
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+
+    my $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ), 0 );
+    my $expected = ( $] < 5.010000 ) ? '((?-xism:(a)(.+?)(\2)))(?{ %+ = ( \'_0\' => $^N ); })' : '(?\'_0\'(?-xism:(a)(.+?)(\g{2})))';
+    is( $ret, $expected );
+
+    my $re_str = ( $] < 5.010000 ) ? '((y)z)(.+)(\\2)' : '((y)z)(.+)(\\g{2})';
+    $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/$re_str/ } ), 3 );
+    $expected = ( $] < 5.010000 ) ? '((?-xism:((y)z)(.+)(\3)))(?{ %+ = ( \'_3\' => $^N ); })' : '(?\'_3\'(?-xism:((y)z)(.+)(\g{3})))';
+    is( $ret, $expected );
+
+    $reggrp->set_backref_offset( 5 );
+
+    $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ), 0 );
+    $expected = ( $] < 5.010000 ) ? '((?-xism:(a)(.+?)(\6)))(?{ %+ = ( \'_0\' => $^N ); })' : '(?\'_0\'(?-xism:(a)(.+?)(\g{6})))';
+    is( $ret, $expected );
+
+    $re_str = ( $] < 5.010000 ) ? '((y)z)(.+)(\\2)' : '((y)z)(.+)(\\g{2})';
+    $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/$re_str/ } ), 3 );
+    $expected = ( $] < 5.010000 ) ? '((?-xism:((y)z)(.+)(\7)))(?{ %+ = ( \'_3\' => $^N ); })' : '(?\'_3\'(?-xism:((y)z)(.+)(\g{7})))';
+    is( $ret, $expected );
+
+    $mocked_reggrp->unmock_all();
+}
+
 sub test__calculate_backref_offset : Tests() {
     my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
 
