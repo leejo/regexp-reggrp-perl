@@ -50,7 +50,7 @@ sub _create_regexp_string {
 
     my $match_index = 0;
 
-    my @reggrp = $self->reggrp_array();
+    my @reggrp = $self->_reggrp_array();
 
     my @data_regexp_strings = ();
 
@@ -77,8 +77,8 @@ sub _calculate_backref_offset {
     $backreference_regexp =~ s/$ESCAPE_BRACKETS//g;
     my @nparen = $backreference_regexp =~ /$BRACKETS/g;
 
-    my $new_offset = $self->get_backref_offset() + scalar( @nparen ) + 1;
-    $self->set_backref_offset( $new_offset );
+    my $new_offset = $self->_get_backref_offset() + scalar( @nparen ) + 1;
+    $self->_set_backref_offset( $new_offset );
 }
 
 sub _create_data_regexp_string {
@@ -92,7 +92,7 @@ sub _create_data_regexp_string {
         $backref_pattern = '\\%d';
     }
 
-    $regexp =~ s/$BACK_REF/sprintf( $backref_pattern, $self->get_backref_offset() + ( $1 || $2 ) )/eg;
+    $regexp =~ s/$BACK_REF/sprintf( $backref_pattern, $self->_get_backref_offset() + ( $1 || $2 ) )/eg;
 
     if ( $] < 5.010000 ) {
 
@@ -137,7 +137,7 @@ sub _create_reggrp_object {
 
     return 0 unless ( $reggrp_data );
 
-    $self->reggrp_add( $reggrp_data );
+    $self->_reggrp_add( $reggrp_data );
 
     return 1;
 }
@@ -178,13 +178,13 @@ sub _args_are_valid {
     return 1;
 }
 
-sub get_backref_offset {
+sub _get_backref_offset {
     my ( $self ) = @_;
 
     return $self->{_backref_offset};
 }
 
-sub set_backref_offset {
+sub _set_backref_offset {
     my ( $self, $backref_offset ) = @_;
 
     $self->{_backref_offset} = $backref_offset;
@@ -218,25 +218,25 @@ sub restore_pattern {
 
 # replacements methods
 
-sub replacements_add {
+sub _replacements_add {
     my ( $self, $data ) = @_;
 
     push( @{ $self->{_replacements} }, $data );
 }
 
-sub replacements_by_idx {
+sub _replacements_by_idx {
     my ( $self, $idx ) = @_;
 
     return $self->{_replacements}->[$idx];
 }
 
-sub replacements_count {
+sub _replacements_count {
     my $self = shift;
 
     return scalar( @{ $self->{_replacements} || [] } );
 }
 
-sub replacements_flush {
+sub _replacements_flush {
     my $self = shift;
 
     $self->{_replacements} = [];
@@ -246,19 +246,19 @@ sub replacements_flush {
 
 # reggrp methods
 
-sub reggrp_add {
+sub _reggrp_add {
     my ( $self, $reggrp ) = @_;
 
     push( @{ $self->{_reggrps} }, $reggrp );
 }
 
-sub reggrp_array {
+sub _reggrp_array {
     my $self = shift;
 
     return @{ $self->{_reggrps} };
 }
 
-sub reggrp_by_idx {
+sub _reggrp_by_idx {
     my ( $self, $idx ) = @_;
 
     return $self->{_reggrps}->[$idx];
@@ -310,7 +310,7 @@ sub _process {
     my ( $midx ) = $match_key =~ /^_(\d+)$/;
     my $match = $match_hash{$match_key};
 
-    my $reggrp = $self->reggrp_by_idx( $midx );
+    my $reggrp = $self->_reggrp_by_idx( $midx );
 
     my @submatches = $match =~ $reggrp->regexp();
     map { $_ .= ''; } @submatches;
@@ -348,12 +348,12 @@ sub _process {
                     match             => $match,
                     submatches        => \@submatches,
                     opts              => $opts,
-                    placeholder_index => $self->replacements_count()
+                    placeholder_index => $self->_replacements_count()
                 }
             );
         }
 
-        $self->replacements_add( $store );
+        $self->_replacements_add( $store );
     }
 
     return $ret;
@@ -382,10 +382,10 @@ sub restore_stored {
 
     # Here is a while loop, because there could be recursive replacements
     while ( ${$to_process} =~ /${\$self->restore_pattern()}/ ) {
-        ${$to_process} =~ s/${\$self->restore_pattern()}/$self->replacements_by_idx( $1 )/egsm;
+        ${$to_process} =~ s/${\$self->restore_pattern()}/$self->_replacements_by_idx( $1 )/egsm;
     }
 
-    $self->replacements_flush();
+    $self->_replacements_flush();
 
     # Return a scalar if requested by context
     return ${$to_process} if ( $cont eq 'scalar' );

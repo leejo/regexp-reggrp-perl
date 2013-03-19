@@ -29,8 +29,8 @@ sub test__create_regexp_string : Tests() {
     my $reggrp_a = Regexp::RegGrp::Data->new( { regexp => qr/Foo/ } );
     my $reggrp_b = Regexp::RegGrp::Data->new( { regexp => qr/Bar/ } );
 
-    $reggrp->reggrp_add( $reggrp_a );
-    $reggrp->reggrp_add( $reggrp_b );
+    $reggrp->_reggrp_add( $reggrp_a );
+    $reggrp->_reggrp_add( $reggrp_b );
 
     $reggrp->_create_regexp_string();
 
@@ -70,7 +70,7 @@ sub test__create_data_regexp_string : Tests() {
     $expected = ( $] < 5.010000 ) ? '((?-xism:((y)z)(.+)(\3)))(?{ %+ = ( \'_3\' => $^N ); })' : '(?\'_3\'(?-xism:((y)z)(.+)(\g{3})))';
     is( $ret, $expected );
 
-    $reggrp->set_backref_offset( 5 );
+    $reggrp->_set_backref_offset( 5 );
 
     $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ), 0 );
     $expected = ( $] < 5.010000 ) ? '((?-xism:(a)(.+?)(\6)))(?{ %+ = ( \'_0\' => $^N ); })' : '(?\'_0\'(?-xism:(a)(.+?)(\g{6})))';
@@ -165,12 +165,12 @@ sub test__create_reggrp_objects : Tests() {
 
     my $ret;
     warnings_are( sub { $reggrp->_create_reggrp_objects(); }, [ 'Value for key "regexp" must be given!', 'RegGrp No 1 in arrayref is malformed!' ] );
-    cmp_deeply( [ $reggrp->reggrp_array() ], [] );
+    cmp_deeply( [ $reggrp->_reggrp_array() ], [] );
 
     $reggrp->{_reggrp} = [ { regexp => qr/Foo/ } ];
     $reggrp->_create_reggrp_objects();
 
-    cmp_deeply( [ $reggrp->reggrp_array() ], [ isa( 'Regexp::RegGrp::Data' ) ] );
+    cmp_deeply( [ $reggrp->_reggrp_array() ], [ isa( 'Regexp::RegGrp::Data' ) ] );
 
     $mocked_reggrp->unmock_all();
 }
@@ -195,16 +195,16 @@ sub test__create_reggrp_object : Tests() {
 
     my $ret;
 
-    cmp_deeply( [ $reggrp->reggrp_array() ], [] );
+    cmp_deeply( [ $reggrp->_reggrp_array() ], [] );
 
     warning_is( sub { $ret = $reggrp->_create_reggrp_object( {} ) }, 'Value for key "regexp" must be given!' );
     is( $ret, 0 );
 
-    cmp_deeply( [ $reggrp->reggrp_array() ], [] );
+    cmp_deeply( [ $reggrp->_reggrp_array() ], [] );
 
     is( $reggrp->_create_reggrp_object( { regexp => qr/Foo/ } ), 1 );
 
-    cmp_deeply( [ $reggrp->reggrp_array() ], [ isa( 'Regexp::RegGrp::Data' ) ] );
+    cmp_deeply( [ $reggrp->_reggrp_array() ], [ isa( 'Regexp::RegGrp::Data' ) ] );
 
     $mocked_reggrp->unmock_all();
 }
@@ -227,18 +227,18 @@ sub test_replacements_methods : Tests() {
 
     my $reggrp = Regexp::RegGrp->new();
 
-    is( $reggrp->replacements_count(), 0 );
+    is( $reggrp->_replacements_count(), 0 );
 
-    $reggrp->replacements_add( 'Foo' );
-    is( $reggrp->replacements_count(), 1 );
-    cmp_deeply( $reggrp->replacements_by_idx( 0 ), 'Foo' );
+    $reggrp->_replacements_add( 'Foo' );
+    is( $reggrp->_replacements_count(), 1 );
+    cmp_deeply( $reggrp->_replacements_by_idx( 0 ), 'Foo' );
 
-    $reggrp->replacements_add( 'Bar' );
-    is( $reggrp->replacements_count(), 2 );
-    cmp_deeply( $reggrp->replacements_by_idx( 1 ), 'Bar' );
+    $reggrp->_replacements_add( 'Bar' );
+    is( $reggrp->_replacements_count(), 2 );
+    cmp_deeply( $reggrp->_replacements_by_idx( 1 ), 'Bar' );
 
-    $reggrp->replacements_flush();
-    is( $reggrp->replacements_count(), 0 );
+    $reggrp->_replacements_flush();
+    is( $reggrp->_replacements_count(), 0 );
 
     $mocked_reggrp->unmock_all();
 }
@@ -261,19 +261,19 @@ sub test_reggrp_methods : Tests() {
 
     my $reggrp = Regexp::RegGrp->new();
 
-    cmp_deeply( [ $reggrp->reggrp_array() ], [] );
+    cmp_deeply( [ $reggrp->_reggrp_array() ], [] );
 
     my $reggrp_a = Regexp::RegGrp::Data->new( { regexp => qr/Foo/ } );
     my $reggrp_b = Regexp::RegGrp::Data->new( { regexp => qr/Bar/ } );
 
-    $reggrp->reggrp_add( $reggrp_a );
-    cmp_deeply( [ $reggrp->reggrp_array() ], [$reggrp_a] );
+    $reggrp->_reggrp_add( $reggrp_a );
+    cmp_deeply( [ $reggrp->_reggrp_array() ], [$reggrp_a] );
 
-    $reggrp->reggrp_add( $reggrp_b );
-    cmp_deeply( [ $reggrp->reggrp_array() ], [ $reggrp_a, $reggrp_b ] );
+    $reggrp->_reggrp_add( $reggrp_b );
+    cmp_deeply( [ $reggrp->_reggrp_array() ], [ $reggrp_a, $reggrp_b ] );
 
-    cmp_deeply( $reggrp->reggrp_by_idx( 0 ), $reggrp_a );
-    cmp_deeply( $reggrp->reggrp_by_idx( 1 ), $reggrp_b );
+    cmp_deeply( $reggrp->_reggrp_by_idx( 0 ), $reggrp_a );
+    cmp_deeply( $reggrp->_reggrp_by_idx( 1 ), $reggrp_b );
 
     $mocked_reggrp->unmock_all();
 }
@@ -343,7 +343,7 @@ sub io_test : Tests() {
 
         is( $input, $tc->{expected_output}, $tc->{description} . ' - void context' );
 
-        $reggrp->replacements_flush();
+        $reggrp->_replacements_flush();
 
         $input = $tc->{input_string};
 
