@@ -8,6 +8,36 @@ use Test::Class::Most parent => 'TestCase';
 use Regexp::RegGrp;
 use Regexp::RegGrp::Data;
 
+sub test_new : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        '_args_are_valid',
+        sub {
+            return 0;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+
+    ok( !$reggrp );
+
+    $mocked_reggrp->mock(
+        '_args_are_valid',
+        sub {
+            return 1;
+        }
+    );
+
+    isa( $reggrp, 'Regexp::RegGrp' );
+
+    $mocked_reggrp->unmock_all();
+
+    $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => 'Foo', replacement => 'Bar' } ] } );
+
+    cmp_deeply( $reggrp->get_re_str(), ( $] < 5.010000 ) ? '(?{ %+ = (); })((?sm:Foo))(?{ %+ = ( \'_0\' => $^N ); })' : '(?\'_0\'(?sm:Foo))' );
+}
+
 sub test__create_regexp_string : Tests() {
     my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
 
