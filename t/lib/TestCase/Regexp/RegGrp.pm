@@ -35,7 +35,7 @@ sub test_new : Tests() {
 
     $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => 'Foo', replacement => 'Bar' } ] } );
 
-    cmp_deeply( $reggrp->get_re_str(), ( $] < 5.010000 ) ? '(?{ %+ = (); })((?sm:Foo))(?{ %+ = ( \'_0\' => $^N ); })' : '(?\'_0\'(?sm:Foo))' );
+    cmp_deeply( $reggrp->_get_re_str(), ( $] < 5.010000 ) ? '(?{ %+ = (); })((?sm:Foo))(?{ %+ = ( \'_0\' => $^N ); })' : '(?\'_0\'(?sm:Foo))' );
 }
 
 sub test__create_regexp_string : Tests() {
@@ -64,7 +64,7 @@ sub test__create_regexp_string : Tests() {
 
     $reggrp->_create_regexp_string();
 
-    is( $reggrp->get_re_str(),
+    is( $reggrp->_get_re_str(),
         ( $] < 5.010000 )
         ? '(?{ %+ = (); })((?-xism:Foo))(?{ %+ = ( \'_0\' => $^N ); })|((?-xism:Bar))(?{ %+ = ( \'_1\' => $^N ); })'
         : '(?\'_0\'(?-xism:Foo))|(?\'_1\'(?-xism:Bar))'

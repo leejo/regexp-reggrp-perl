@@ -64,7 +64,7 @@ sub _create_regexp_string {
     }
 
     # In perl versions < 5.10 hash %+ doesn't exist, so we have to initialize it
-    $self->set_re_str( ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join( '|', @data_regexp_strings ) );
+    $self->_set_re_str( ( ( $] < 5.010000 ) ? '(?{ %+ = (); })' : '' ) . join( '|', @data_regexp_strings ) );
 }
 
 sub _calculate_backref_offset {
@@ -146,7 +146,7 @@ sub _adjust_restore_pattern_attribute {
     my ( $self ) = @_;
 
     my $restore_pattern = $self->{_restore_pattern} || qr~\x01(\d+)\x01~;
-    $self->{_restore_pattern} = qr/$restore_pattern/;
+    $self->_set_restore_pattern( qr/$restore_pattern/ );
 }
 
 sub _args_are_valid {
@@ -192,13 +192,13 @@ sub _set_backref_offset {
 
 # re_str methods
 
-sub set_re_str {
+sub _set_re_str {
     my ( $self, $re_str ) = @_;
 
     $self->{_re_str} = $re_str;
 }
 
-sub get_re_str {
+sub _get_re_str {
     my $self = shift;
 
     return $self->{_re_str};
@@ -208,7 +208,13 @@ sub get_re_str {
 
 # restore_pattern methods
 
-sub restore_pattern {
+sub _set_restore_pattern {
+    my ( $self, $restore_pattern ) = @_;
+
+    $self->{_restore_pattern} = $restore_pattern;
+}
+
+sub _get_restore_pattern {
     my $self = shift;
 
     return $self->{_restore_pattern};
@@ -294,7 +300,7 @@ sub exec {
         $to_process = $input;
     }
 
-    ${$to_process} =~ s/${\$self->get_re_str()}/$self->_process( { match_hash => \%+, opts => $opts } )/eg;
+    ${$to_process} =~ s/${\$self->_get_re_str()}/$self->_process( { match_hash => \%+, opts => $opts } )/eg;
 
     # Return a scalar if requested by context
     return ${$to_process} if ( $cont eq 'scalar' );
@@ -303,6 +309,7 @@ sub exec {
 sub _process {
     my ( $self, $args ) = @_;
 
+    # Must be dereferenced because %+ will be reseted
     my %match_hash = %{ $args->{match_hash} };
     my $opts       = $args->{opts};
 
@@ -381,8 +388,8 @@ sub restore_stored {
     }
 
     # Here is a while loop, because there could be recursive replacements
-    while ( ${$to_process} =~ /${\$self->restore_pattern()}/ ) {
-        ${$to_process} =~ s/${\$self->restore_pattern()}/$self->_replacements_by_idx( $1 )/egsm;
+    while ( ${$to_process} =~ /${\$self->_get_restore_pattern()}/ ) {
+        ${$to_process} =~ s/${\$self->_get_restore_pattern()}/$self->_replacements_by_idx( $1 )/egsm;
     }
 
     $self->_replacements_flush();
