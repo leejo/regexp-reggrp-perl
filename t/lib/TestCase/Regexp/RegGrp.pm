@@ -67,7 +67,9 @@ sub test__create_regexp_string : Tests() {
     is( $reggrp->_get_re_str(),
         ( $] < 5.010000 )
         ? '(?{ %+ = (); })((?-xism:Foo))(?{ %+ = ( \'_0\' => $^N ); })|((?-xism:Bar))(?{ %+ = ( \'_1\' => $^N ); })'
-        : '(?\'_0\'(?-xism:Foo))|(?\'_1\'(?-xism:Bar))'
+        : ( $] < 5.013006 )
+            ? '(?\'_0\'(?-xism:Foo))|(?\'_1\'(?-xism:Bar))'
+            : '(?\'_0\'(?^:Foo))|(?\'_1\'(?^:Bar))'
     );
 
     $mocked_reggrp->unmock_all();
@@ -92,23 +94,40 @@ sub test__create_data_regexp_string : Tests() {
     my $reggrp = Regexp::RegGrp->new();
 
     my $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ), 0 );
-    my $expected = ( $] < 5.010000 ) ? '((?-xism:(a)(.+?)(\2)))(?{ %+ = ( \'_0\' => $^N ); })' : '(?\'_0\'(?-xism:(a)(.+?)(\g{2})))';
+    my $expected = ( $] < 5.010000 )
+        ? '(?\'_0\'(?-xism:(a)(.+?)(\g{2})))'
+        : ( $] < 5.013006 )
+            ? '((?-xism:(a)(.+?)(\2)))(?{ %+ = ( \'_0\' => $^N ); })'
+            : '(?\'_0\'(?^:(a)(.+?)(\g{2})))';
+
     is( $ret, $expected );
 
     my $re_str = ( $] < 5.010000 ) ? '((y)z)(.+)(\\2)' : '((y)z)(.+)(\\g{2})';
     $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/$re_str/ } ), 3 );
-    $expected = ( $] < 5.010000 ) ? '((?-xism:((y)z)(.+)(\3)))(?{ %+ = ( \'_3\' => $^N ); })' : '(?\'_3\'(?-xism:((y)z)(.+)(\g{3})))';
+    $expected = ( $] < 5.010000 )
+        ? '((?-xism:((y)z)(.+)(\3)))(?{ %+ = ( \'_3\' => $^N ); })'
+        : ( $] < 5.013006 )
+            ? '(?\'_3\'(?-xism:((y)z)(.+)(\g{3})))'
+            : '(?\'_3\'(?^:((y)z)(.+)(\g{3})))';
     is( $ret, $expected );
 
     $reggrp->_set_backref_offset( 5 );
 
     $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ), 0 );
-    $expected = ( $] < 5.010000 ) ? '((?-xism:(a)(.+?)(\6)))(?{ %+ = ( \'_0\' => $^N ); })' : '(?\'_0\'(?-xism:(a)(.+?)(\g{6})))';
+    $expected = ( $] < 5.010000 )
+        ? '((?-xism:(a)(.+?)(\6)))(?{ %+ = ( \'_0\' => $^N ); })'
+        : ( $] < 5.013006 )
+            ? '(?\'_0\'(?-xism:(a)(.+?)(\g{6})))'
+            : '(?\'_0\'(?^:(a)(.+?)(\g{6})))';
     is( $ret, $expected );
 
     $re_str = ( $] < 5.010000 ) ? '((y)z)(.+)(\\2)' : '((y)z)(.+)(\\g{2})';
     $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/$re_str/ } ), 3 );
-    $expected = ( $] < 5.010000 ) ? '((?-xism:((y)z)(.+)(\7)))(?{ %+ = ( \'_3\' => $^N ); })' : '(?\'_3\'(?-xism:((y)z)(.+)(\g{7})))';
+    $expected = ( $] < 5.010000 )
+        ? '((?-xism:((y)z)(.+)(\7)))(?{ %+ = ( \'_3\' => $^N ); })'
+        : ( $] < 5.013006 )
+            ? '(?\'_3\'(?-xism:((y)z)(.+)(\g{7})))'
+            : '(?\'_3\'(?^:((y)z)(.+)(\g{7})))';
     is( $ret, $expected );
 
     $mocked_reggrp->unmock_all();
