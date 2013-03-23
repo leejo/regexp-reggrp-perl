@@ -70,6 +70,15 @@ sub _create_regexp_string {
 sub _calculate_backref_offset {
     my ( $self, $reggrp_data ) = @_;
 
+    my $reference_count = $self->_calculate_reference_count( $reggrp_data );
+
+    my $new_offset = $self->_get_backref_offset() + $reference_count + 1;
+    $self->_set_backref_offset( $new_offset );
+}
+
+sub _calculate_reference_count {
+    my ( $self, $reggrp_data ) = @_;
+
     my $backreference_regexp = $reggrp_data->regexp();
 
     # Count backref brackets
@@ -77,8 +86,7 @@ sub _calculate_backref_offset {
     $backreference_regexp =~ s/$ESCAPE_BRACKETS//g;
     my @nparen = $backreference_regexp =~ /$BRACKETS/g;
 
-    my $new_offset = $self->_get_backref_offset() + scalar( @nparen ) + 1;
-    $self->_set_backref_offset( $new_offset );
+    return scalar( @nparen );
 }
 
 sub _create_data_regexp_string {
@@ -319,7 +327,12 @@ sub _process {
 
     my $reggrp = $self->_reggrp_by_idx( $midx );
 
-    my @submatches = $match =~ $reggrp->regexp();
+    my @submatches = ();
+
+    if ( $self->_calculate_reference_count( $reggrp ) ) {
+        @submatches = $match =~ $reggrp->regexp();
+    }
+
     map { $_ .= ''; } @submatches;
 
     my $ret = $match;
