@@ -8,6 +8,75 @@ use Test::Class::Most parent => 'TestCase';
 use Regexp::RegGrp;
 use Regexp::RegGrp::Data;
 
+sub test__restore_stored : Tests() {
+    my $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/, replacement => 'Bar', placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); } } ] } );
+
+    my $input = 'Blah Foo Blubb';
+    $reggrp->exec( \$input );
+    is( $input, "Blah \x010\x01 Blubb" );
+
+    $reggrp->restore_stored( \$input );
+    is( $input, 'Blah Bar Blubb' );
+
+    $input = 'Blah Foo Blubb';
+    $reggrp->exec( \$input );
+    is( $input, "Blah \x010\x01 Blubb" );
+
+    my $output = $reggrp->restore_stored( \$input );
+    is( $input, "Blah \x010\x01 Blubb" );
+    is( $output, 'Blah Bar Blubb' );
+}
+
+sub test_exec : Tests() {
+    my $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/, replacement => 'Bar' } ] } );
+
+    warning_is( sub { $reggrp->exec() }, 'First argument in Regexp::RegGrp->exec must be a scalarref!' );
+    warning_is( sub { $reggrp->exec( 'Blah Foo Blubb' ) }, 'First argument in Regexp::RegGrp->exec must be a scalarref!' );
+
+    my $input = 'Blah Foo Blubb';
+    warning_is( sub { $reggrp->exec( \$input, ' ' ) }, 'Second argument in Regexp::RegGrp->exec must be a hashref!' );
+
+    $input = 'Blah Foo Blubb';
+    $reggrp->exec( \$input );
+    is( $input, 'Blah Bar Blubb' );
+
+    $input = 'Blah Foo Blubb';
+    my $output = $reggrp->exec( \$input );
+    is( $input, 'Blah Foo Blubb' );
+    is( $output, 'Blah Bar Blubb' );
+}
+
+sub test___process : Tests() {
+    my $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/ } ] } );
+
+    my $return = $reggrp->_process( { match_hash => { _0 => 'Foo' } } );
+    is( $return, 'Foo' );
+
+    $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/, replacement => 'Bar' } ] } );
+    $return = $reggrp->_process( { match_hash => { _0 => 'Foo' } } );
+    is( $return, 'Bar' );
+
+    my $args = {};
+    $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/, replacement => sub { $args = shift; return 'Baz'; } } ] } );
+    $return = $reggrp->_process( { match_hash => { _0 => 'Foo' } } );
+    is( $return, 'Baz' );
+    is( $reggrp->_replacements_count(), 0 );
+    cmp_deeply( $args, { match => 'Foo', submatches => [], opts => undef } );
+
+    $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/, placeholder => 'Bar' } ] } );
+    $return = $reggrp->_process( { match_hash => { _0 => 'Foo' } } );
+    is( $return, 'Bar' );
+    is( $reggrp->_replacements_count(), 1 );
+    is( $reggrp->_replacements_by_idx( 0 ), 'Foo' );
+
+    $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/, placeholder => sub { $args = shift; return 'Baz'; } } ] } );
+    $return = $reggrp->_process( { match_hash => { _0 => 'Foo' } } );
+    is( $return, 'Baz' );
+    is( $reggrp->_replacements_count(), 1 );
+    is( $reggrp->_replacements_by_idx( 0 ), 'Foo' );
+    cmp_deeply( $args, { match => 'Foo', submatches => [], opts => undef, placeholder_index => 0 } );
+}
+
 sub test_new : Tests() {
     my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
 
@@ -129,6 +198,30 @@ sub test__create_data_regexp_string : Tests() {
             ? '(?\'_3\'(?-xism:((y)z)(.+)(\g{7})))'
             : '(?\'_3\'(?^:((y)z)(.+)(\g{7})))';
     is( $ret, $expected );
+
+    $mocked_reggrp->unmock_all();
+}
+
+sub test__calculate_reference_count : Tests() {
+    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
+
+    $mocked_reggrp->mock(
+        'new',
+        sub {
+            my ( $class ) = @_;
+
+            my $self = { _backref_offset => 1 };
+
+            bless( $self, $class );
+
+            return $self;
+        }
+    );
+
+    my $reggrp = Regexp::RegGrp->new();
+
+    is( $reggrp->_calculate_reference_count( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ) ), 3 );
+    is( $reggrp->_calculate_reference_count( Regexp::RegGrp::Data->new( { regexp => 'Foo' } ) ), 0 );
 
     $mocked_reggrp->unmock_all();
 }
