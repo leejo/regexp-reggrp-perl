@@ -1,6 +1,9 @@
 Revision history for Regexp-RegGrp
 
-1.003_001
+1.003_001   2013-03-26
+    - !!!! USE WITH CAUTION !!!! THIS VERSION HAS BREAKING CHANGES !!!!
+    - Refactoring.
+    - Increase test coverage.
 
 1.002001   2012-02-18
     - Use gnutar to build distribution.
