@@ -153,7 +153,10 @@ sub _create_reggrp_object {
 sub _adjust_restore_pattern_attribute {
     my ( $self ) = @_;
 
-    my $restore_pattern = $self->{_restore_pattern} || qr~\x01(\d+)\x01~;
+    my $restore_pattern = qr~\x01(\d+)\x01~;
+    if ( $self->{_restore_pattern} ) {
+        $restore_pattern = $self->{_restore_pattern};
+    }
     $self->_set_restore_pattern( qr/$restore_pattern/ );
 }
 
@@ -451,7 +454,7 @@ Groups regular expressions to one regular expression
 
     $reggrp->exec( \$scalar );
 
-To return a scalar without changing the input simply use (e.g. example 2):
+To return a scalar without changing the input simply use:
 
     my $ret = $reggrp->exec( \$scalar );
 
@@ -473,48 +476,10 @@ A regular expression
 
 Scalar or sub.
 
-A replacement for the regular expression match. If not set, nothing will be replaced except "store" is set.
-In this case the match is replaced by something like sprintf("\x01%d\x01", $idx) where $idx is the index
-of the stored element in the store_data arrayref. If "store" is set the default is:
-
-    sub {
-        return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} );
-    }
-
-If a custom restore_pattern is passed to to constructor you MUST also define a replacement. Otherwise
-it is undefined.
-
+A replacement for the regular expression match. If not set, nothing will be replaced except "placeholder" is set.
+In this case the match is replaced by what is defined by "placeholder" and the match will be stored in the
+$self->{_replacements} arrayref.
 If you define a subroutine as replacement an hashref is passed to this subroutine. This hashref has
-four keys:
-
-=over 12
-
-=item match
-
-Scalar. The match of the regular expression.
-
-=item submatches
-
-Arrayref of submatches.
-
-=item placeholder_index
-
-The next index. You need this if you want to create a placeholder and store the replacement in the
-$self->{store_data} arrayref.
-
-=item opts
-
-Hashref of custom options.
-
-=back
-
-=item modifier (optional)
-
-Scalar. The default is 'sm'.
-
-=item store (optional)
-
-Scalar or sub. If you define a subroutine an hashref is passed to this subroutine. This hashref has
 three keys:
 
 =over 12
@@ -533,8 +498,41 @@ Hashref of custom options.
 
 =back
 
-A replacement for the regular expression match. It will not replace the match directly. The replacement
-will be stored in the $self->{store_data} arrayref. The placeholders in the text can easily be rereplaced
+=item modifier (optional)
+
+Scalar. The default is 'sm'.
+
+=item placeholder (optional)
+
+Scalar or sub. If you define a subroutine an hashref is passed to this subroutine. This hashref has
+four keys:
+
+=over 12
+
+=item match
+
+Scalar. The match of the regular expression.
+
+=item submatches
+
+Arrayref of submatches.
+
+=item opts
+
+Hashref of custom options.
+
+=item placeholder_index
+
+The next index. You need this if you want to identify the placeholder later. In this case you can define
+a placeholder like this:
+
+    sub {
+        return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} );
+    }
+
+=back
+
+A replacement for the regular expression match. The placeholders in the text can easily be rereplaced
 with the restore_stored method later.
 
 =back
@@ -546,7 +544,7 @@ Scalar or Regexp object. The default restore pattern is
     qr~\x01(\d+)\x01~
 
 This means, if you use the restore_stored method it is looking for \x010\x01, \x011\x01, ... and
-replaces the matches with $self->{store_data}->[0], $self->{store_data}->[1], ...
+replaces the matches with $self->{_replacements}->[0], $self->{_replacements}->[1], ...
 
 =back
 
@@ -647,7 +645,7 @@ perldoc Regexp::RegGrp
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2010, 2011 Merten Falk, all rights reserved.
+Copyright 2010 - 2013 Merten Falk, all rights reserved.
 
 This program is free software; you can redistribute it and/or modify it under
 the same terms as Perl itself.
