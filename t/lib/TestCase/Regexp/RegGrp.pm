@@ -9,7 +9,17 @@ use Regexp::RegGrp;
 use Regexp::RegGrp::Data;
 
 sub test__restore_stored : Tests() {
-    my $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/, replacement => 'Bar', placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); } } ] } );
+    my $reggrp = Regexp::RegGrp->new(
+        {
+            reggrp => [
+                {
+                    regexp      => qr/F.o/,
+                    replacement => 'Bar',
+                    placeholder => sub { return sprintf( "\x01%d\x01", $_[0]->{placeholder_index} ); }
+                }
+            ]
+        }
+    );
 
     my $input = 'Blah Foo Blubb';
     $reggrp->exec( \$input );
@@ -23,7 +33,7 @@ sub test__restore_stored : Tests() {
     is( $input, "Blah \x010\x01 Blubb" );
 
     my $output = $reggrp->restore_stored( \$input );
-    is( $input, "Blah \x010\x01 Blubb" );
+    is( $input,  "Blah \x010\x01 Blubb" );
     is( $output, 'Blah Bar Blubb' );
 }
 
@@ -42,7 +52,7 @@ sub test_exec : Tests() {
 
     $input = 'Blah Foo Blubb';
     my $output = $reggrp->exec( \$input );
-    is( $input, 'Blah Foo Blubb' );
+    is( $input,  'Blah Foo Blubb' );
     is( $output, 'Blah Bar Blubb' );
 }
 
@@ -57,22 +67,40 @@ sub test___process : Tests() {
     is( $return, 'Bar' );
 
     my $args = {};
-    $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/, replacement => sub { $args = shift; return 'Baz'; } } ] } );
+    $reggrp = Regexp::RegGrp->new(
+        {
+            reggrp => [
+                {
+                    regexp      => qr/F.o/,
+                    replacement => sub { $args = shift; return 'Baz'; }
+                }
+            ]
+        }
+    );
     $return = $reggrp->_process( { match_hash => { _0 => 'Foo' } } );
-    is( $return, 'Baz' );
+    is( $return,                        'Baz' );
     is( $reggrp->_replacements_count(), 0 );
     cmp_deeply( $args, { match => 'Foo', submatches => [], opts => undef } );
 
     $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/, placeholder => 'Bar' } ] } );
     $return = $reggrp->_process( { match_hash => { _0 => 'Foo' } } );
-    is( $return, 'Bar' );
-    is( $reggrp->_replacements_count(), 1 );
+    is( $return,                            'Bar' );
+    is( $reggrp->_replacements_count(),     1 );
     is( $reggrp->_replacements_by_idx( 0 ), 'Foo' );
 
-    $reggrp = Regexp::RegGrp->new( { reggrp => [ { regexp => qr/F.o/, placeholder => sub { $args = shift; return 'Baz'; } } ] } );
+    $reggrp = Regexp::RegGrp->new(
+        {
+            reggrp => [
+                {
+                    regexp      => qr/F.o/,
+                    placeholder => sub { $args = shift; return 'Baz'; }
+                }
+            ]
+        }
+    );
     $return = $reggrp->_process( { match_hash => { _0 => 'Foo' } } );
-    is( $return, 'Baz' );
-    is( $reggrp->_replacements_count(), 1 );
+    is( $return,                            'Baz' );
+    is( $reggrp->_replacements_count(),     1 );
     is( $reggrp->_replacements_by_idx( 0 ), 'Foo' );
     cmp_deeply( $args, { match => 'Foo', submatches => [], opts => undef, placeholder_index => 0 } );
 }
@@ -134,12 +162,9 @@ sub test__create_regexp_string : Tests() {
     $reggrp->_create_regexp_string();
 
     is( $reggrp->_get_re_str(),
-        ( $] < 5.010000 )
-        ? '(?{ %+ = (); })((?-xism:Foo))(?{ %+ = ( \'_0\' => $^N ); })|((?-xism:Bar))(?{ %+ = ( \'_1\' => $^N ); })'
-        : ( $] < 5.013006 )
-            ? '(?\'_0\'(?-xism:Foo))|(?\'_1\'(?-xism:Bar))'
-            : '(?\'_0\'(?^:Foo))|(?\'_1\'(?^:Bar))'
-    );
+          ( $] < 5.010000 ) ? '(?{ %+ = (); })((?-xism:Foo))(?{ %+ = ( \'_0\' => $^N ); })|((?-xism:Bar))(?{ %+ = ( \'_1\' => $^N ); })'
+        : ( $] < 5.013006 ) ? '(?\'_0\'(?-xism:Foo))|(?\'_1\'(?-xism:Bar))'
+        :                     '(?\'_0\'(?^:Foo))|(?\'_1\'(?^:Bar))' );
 
     $mocked_reggrp->unmock_all();
 }
@@ -163,40 +188,36 @@ sub test__create_data_regexp_string : Tests() {
     my $reggrp = Regexp::RegGrp->new();
 
     my $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ), 0 );
-    my $expected = ( $] < 5.010000 )
-        ? '(?\'_0\'(?-xism:(a)(.+?)(\g{2})))'
-        : ( $] < 5.013006 )
-            ? '((?-xism:(a)(.+?)(\2)))(?{ %+ = ( \'_0\' => $^N ); })'
-            : '(?\'_0\'(?^:(a)(.+?)(\g{2})))';
+    my $expected
+        = ( $] < 5.010000 ) ? '(?\'_0\'(?-xism:(a)(.+?)(\g{2})))'
+        : ( $] < 5.013006 ) ? '((?-xism:(a)(.+?)(\2)))(?{ %+ = ( \'_0\' => $^N ); })'
+        :                     '(?\'_0\'(?^:(a)(.+?)(\g{2})))';
 
     is( $ret, $expected );
 
     my $re_str = ( $] < 5.010000 ) ? '((y)z)(.+)(\\2)' : '((y)z)(.+)(\\g{2})';
     $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/$re_str/ } ), 3 );
-    $expected = ( $] < 5.010000 )
-        ? '((?-xism:((y)z)(.+)(\3)))(?{ %+ = ( \'_3\' => $^N ); })'
-        : ( $] < 5.013006 )
-            ? '(?\'_3\'(?-xism:((y)z)(.+)(\g{3})))'
-            : '(?\'_3\'(?^:((y)z)(.+)(\g{3})))';
+    $expected
+        = ( $] < 5.010000 ) ? '((?-xism:((y)z)(.+)(\3)))(?{ %+ = ( \'_3\' => $^N ); })'
+        : ( $] < 5.013006 ) ? '(?\'_3\'(?-xism:((y)z)(.+)(\g{3})))'
+        :                     '(?\'_3\'(?^:((y)z)(.+)(\g{3})))';
     is( $ret, $expected );
 
     $reggrp->_set_backref_offset( 5 );
 
     $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ), 0 );
-    $expected = ( $] < 5.010000 )
-        ? '((?-xism:(a)(.+?)(\6)))(?{ %+ = ( \'_0\' => $^N ); })'
-        : ( $] < 5.013006 )
-            ? '(?\'_0\'(?-xism:(a)(.+?)(\g{6})))'
-            : '(?\'_0\'(?^:(a)(.+?)(\g{6})))';
+    $expected
+        = ( $] < 5.010000 ) ? '((?-xism:(a)(.+?)(\6)))(?{ %+ = ( \'_0\' => $^N ); })'
+        : ( $] < 5.013006 ) ? '(?\'_0\'(?-xism:(a)(.+?)(\g{6})))'
+        :                     '(?\'_0\'(?^:(a)(.+?)(\g{6})))';
     is( $ret, $expected );
 
     $re_str = ( $] < 5.010000 ) ? '((y)z)(.+)(\\2)' : '((y)z)(.+)(\\g{2})';
     $ret = $reggrp->_create_data_regexp_string( Regexp::RegGrp::Data->new( { regexp => qr/$re_str/ } ), 3 );
-    $expected = ( $] < 5.010000 )
-        ? '((?-xism:((y)z)(.+)(\7)))(?{ %+ = ( \'_3\' => $^N ); })'
-        : ( $] < 5.013006 )
-            ? '(?\'_3\'(?-xism:((y)z)(.+)(\g{7})))'
-            : '(?\'_3\'(?^:((y)z)(.+)(\g{7})))';
+    $expected
+        = ( $] < 5.010000 ) ? '((?-xism:((y)z)(.+)(\7)))(?{ %+ = ( \'_3\' => $^N ); })'
+        : ( $] < 5.013006 ) ? '(?\'_3\'(?-xism:((y)z)(.+)(\g{7})))'
+        :                     '(?\'_3\'(?^:((y)z)(.+)(\g{7})))';
     is( $ret, $expected );
 
     $mocked_reggrp->unmock_all();
@@ -221,7 +242,7 @@ sub test__calculate_reference_count : Tests() {
     my $reggrp = Regexp::RegGrp->new();
 
     is( $reggrp->_calculate_reference_count( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ) ), 3 );
-    is( $reggrp->_calculate_reference_count( Regexp::RegGrp::Data->new( { regexp => 'Foo' } ) ), 0 );
+    is( $reggrp->_calculate_reference_count( Regexp::RegGrp::Data->new( { regexp => 'Foo' } ) ),            0 );
 
     $mocked_reggrp->unmock_all();
 }

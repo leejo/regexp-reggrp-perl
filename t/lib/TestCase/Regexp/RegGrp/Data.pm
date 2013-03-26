@@ -11,7 +11,7 @@ sub test_new : Tests() {
     my $mocked_data = Test::MockModule->new( 'Regexp::RegGrp::Data' );
 
     $mocked_data->mock( '_args_are_valid', sub { return 0; } );
-    ok( ! Regexp::RegGrp::Data->new() );
+    ok( !Regexp::RegGrp::Data->new() );
 
     $mocked_data->unmock_all();
 
@@ -47,12 +47,12 @@ sub test__adjust_regexp_attribute : Tests() {
     $data->_adjust_regexp_attribute();
     is( $data->regexp(), '(?sm:Foo)', 'Test regexp is a scalar.' );
 
-    $data->{_regexp} = qr/Foo/;
+    $data->{_regexp}   = qr/Foo/;
     $data->{_modifier} = 's';
     $data->_adjust_regexp_attribute();
     is( $data->regexp(), '(?s:Foo)', 'regexp is a regexp object and modifier is set.' );
 
-    $data->{_regexp} = 'Foo';
+    $data->{_regexp}   = 'Foo';
     $data->{_modifier} = 's';
     $data->_adjust_regexp_attribute();
     is( $data->regexp(), '(?s:Foo)', 'Test regexp is a scalar and modifier is set.' );
@@ -84,16 +84,16 @@ sub test__args_are_valid : Tests() {
     is( $ret, 0 );
     warning_is( sub { $ret = $data->_args_are_valid( { regexp => undef } ) }, 'Value for key "regexp" must be given!', 'Test "regexp" value.' );
     is( $ret, 0 );
-    warning_is( sub { $ret = $data->_args_are_valid( { regexp => [] } ) }, 'Value for key "regexp" must be a scalar or a regexp object!', 'Test "regexp" value.' );
+    warning_is(
+        sub { $ret = $data->_args_are_valid( { regexp => [] } ) },
+        'Value for key "regexp" must be a scalar or a regexp object!',
+        'Test "regexp" value.'
+    );
     is( $ret, 0 );
-    is( $data->_args_are_valid( { regexp => 'Foo' } ), 1,   'Test "regexp" value.' );
+    is( $data->_args_are_valid( { regexp => 'Foo' } ),   1, 'Test "regexp" value.' );
     is( $data->_args_are_valid( { regexp => qr/Foo/ } ), 1, 'Test "regexp" value.' );
 
-    is(
-        $data->_args_are_valid( { regexp => 'Foo', replacement => undef } ),
-        1,
-        'Test "replacement" value.'
-    );
+    is( $data->_args_are_valid( { regexp => 'Foo', replacement => undef } ), 1, 'Test "replacement" value.' );
     warning_is(
         sub { $ret = $data->_args_are_valid( { regexp => 'Foo', replacement => [] } ) },
         'Value for key "replacement" must be a scalar or a code reference!',
@@ -112,11 +112,7 @@ sub test__args_are_valid : Tests() {
         'Test "replacement" value.'
     );
 
-    is(
-        $data->_args_are_valid( { regexp => 'Foo', placeholder => undef } ),
-        1,
-        'Test "placeholder" value.'
-    );
+    is( $data->_args_are_valid( { regexp => 'Foo', placeholder => undef } ), 1, 'Test "placeholder" value.' );
     warning_is(
         sub { $ret = $data->_args_are_valid( { regexp => 'Foo', placeholder => [] } ) },
         'Value for key "placeholder" must be a scalar or a code reference!',
@@ -135,11 +131,7 @@ sub test__args_are_valid : Tests() {
         'Test "placeholder" value.'
     );
 
-    is(
-        $data->_args_are_valid( { regexp => 'Foo', modifier => undef } ),
-        1,
-        'Test "modifier" value.'
-    );
+    is( $data->_args_are_valid( { regexp => 'Foo', modifier => undef } ), 1, 'Test "modifier" value.' );
     warning_is(
         sub { $ret = $data->_args_are_valid( { regexp => 'Foo', modifier => [] } ) },
         'Value for key "modifier" must be a scalar!',
