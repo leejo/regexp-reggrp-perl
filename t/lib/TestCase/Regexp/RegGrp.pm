@@ -1,4 +1,4 @@
-package Stordoc::Regexp::RegGrp;
+package TestCase::Regexp::RegGrp;
 
 use strict;
 use warnings;
