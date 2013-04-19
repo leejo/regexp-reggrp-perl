@@ -60,6 +60,14 @@ sub test__adjust_regexp_attribute : Tests() {
     $mocked_data->unmock_all();
 }
 
+sub test__calculate_reference_count : Tests() {
+    my $data = Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } );
+    is( $data->_calculate_reference_count(), 3 );
+
+    $data = Regexp::RegGrp::Data->new( { regexp => qr/Foo/ } );
+    is( $data->_calculate_reference_count(), 0 );
+}
+
 sub test__args_are_valid : Tests() {
     my $mocked_data = Test::MockModule->new( 'Regexp::RegGrp::Data' );
 

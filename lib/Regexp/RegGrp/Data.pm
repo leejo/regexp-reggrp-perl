@@ -5,7 +5,11 @@ use warnings;
 use strict;
 use Carp;
 
-our @ACCESSORS = ( 'regexp', 'replacement', 'placeholder' );
+our @ACCESSORS = ( 'regexp', 'replacement', 'placeholder', 'reference_count' );
+
+our $ESCAPE_BRACKETS = qr~(?<!\\)\[[^\]]+(?<!\\)\]|\(\?([\^dlupimsx-]+:|[:=!><])~;
+our $ESCAPE_CHARS    = qr~\\.~;
+our $BRACKETS        = qr~\(~;
 
 ##########################################################################################
 
@@ -24,14 +28,29 @@ sub new {
     $self->{_replacement} = $args->{replacement};
     $self->{_placeholder} = $args->{placeholder};
     $self->{_modifier}    = $args->{modifier};
+    $self->{_reference_count} = 0;
 
     $self->_adjust_regexp_attribute();
+    $self->_calculate_reference_count();
 
     foreach my $field ( @ACCESSORS ) {
         $self->_mk_accessor( $field );
     }
 
     return $self;
+}
+
+sub _calculate_reference_count {
+    my ( $self ) = @_;
+
+    my $backreference_regexp = $self->{_regexp};
+
+    # Count backref brackets
+    $backreference_regexp =~ s/$ESCAPE_CHARS//g;
+    $backreference_regexp =~ s/$ESCAPE_BRACKETS//g;
+    my @nparen = $backreference_regexp =~ /$BRACKETS/g;
+
+    $self->{_reference_count} = scalar( @nparen );
 }
 
 sub _adjust_regexp_attribute {

@@ -223,30 +223,6 @@ sub test__create_data_regexp_string : Tests() {
     $mocked_reggrp->unmock_all();
 }
 
-sub test__calculate_reference_count : Tests() {
-    my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
-
-    $mocked_reggrp->mock(
-        'new',
-        sub {
-            my ( $class ) = @_;
-
-            my $self = { _backref_offset => 1 };
-
-            bless( $self, $class );
-
-            return $self;
-        }
-    );
-
-    my $reggrp = Regexp::RegGrp->new();
-
-    is( $reggrp->_calculate_reference_count( Regexp::RegGrp::Data->new( { regexp => qr/(a)(.+?)(\1)/ } ) ), 3 );
-    is( $reggrp->_calculate_reference_count( Regexp::RegGrp::Data->new( { regexp => 'Foo' } ) ),            0 );
-
-    $mocked_reggrp->unmock_all();
-}
-
 sub test__calculate_backref_offset : Tests() {
     my $mocked_reggrp = Test::MockModule->new( 'Regexp::RegGrp' );
 

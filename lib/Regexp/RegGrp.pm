@@ -34,6 +34,8 @@ sub new {
     $self->{_restore_pattern} = $args->{restore_pattern};
     $self->{_reggrp}          = $args->{reggrp};
 
+    $self->{_replacements}   = [];
+    $self->{_stash}          = [];
     $self->{_reggrps}        = [];
     $self->{_backref_offset} = 1;
 
@@ -70,7 +72,7 @@ sub _create_regexp_string {
 sub _calculate_backref_offset {
     my ( $self, $reggrp_data ) = @_;
 
-    my $reference_count = $self->_calculate_reference_count( $reggrp_data );
+    my $reference_count = $reggrp_data->reference_count();
 
     my $new_offset = $self->_get_backref_offset() + $reference_count + 1;
     $self->_set_backref_offset( $new_offset );
@@ -233,6 +235,44 @@ sub _get_restore_pattern {
 
 # /restore_pattern methods
 
+sub _add_to_stash {
+    my ( $self, $match_hash ) = @_;
+
+    # Must be dereferenced because %+ will be reseted
+    my %match_hash = %{ $match_hash };
+
+    my $match_key = ( keys( %match_hash ) )[0];
+    my ( $match_index ) = $match_key =~ /^_(\d+)$/;
+    my $match = $match_hash{$match_key};
+
+    # returns index of recently added element
+    return "\x02" . ( push( @{ $self->{_stash} }, { match_index => $match_index, match => $match } ) - 1 ) . "\x02";
+}
+
+sub _get_stash_by_idx {
+    my ( $self, $idx ) = @_;
+
+    return $self->{_stash}->[$idx];
+}
+
+sub _get_stash {
+    my ( $self, $idx ) = @_;
+
+    return $self->{_stash};
+}
+
+sub _stash_count {
+    my $self = shift;
+
+    return scalar( @{ $self->{_stash} || [] } );
+}
+
+sub _flush_stash {
+    my ( $self ) = @_;
+
+    $self->{_stash} = [];
+}
+
 # replacements methods
 
 sub _replacements_add {
@@ -284,7 +324,7 @@ sub _reggrp_by_idx {
 # /reggrp methods
 
 sub exec {
-    my ( $self, $input, $opts ) = @_;
+    my ( $self, $input, $opts, $test ) = @_;
 
     if ( ref( $input ) ne 'SCALAR' ) {
         carp( 'First argument in Regexp::RegGrp->exec must be a scalarref!' );
@@ -311,10 +351,86 @@ sub exec {
         $to_process = $input;
     }
 
-    ${$to_process} =~ s/${\$self->_get_re_str()}/$self->_process( { match_hash => \%+, opts => $opts } )/eg;
+    unless ( $test ) {
+        ${$to_process} =~ s/${\$self->_get_re_str()}/$self->_add_to_stash( \%+ )/eg;
+
+        $self->_process_stash( $opts );
+
+        ${$to_process} =~ s/\x02(\d+)\x02/$self->_get_stash_by_idx( $1 )->{match}/eg;
+
+        $self->_flush_stash();
+    }
+    else {
+        ${$to_process} =~ s/${\$self->_get_re_str()}/$self->_process( { match_hash => \%+, opts => $opts } )/eg;
+    }
 
     # Return a scalar if requested by context
     return ${$to_process} if ( $cont eq 'scalar' );
+}
+
+sub _process_stash {
+    my ( $self, $opts ) = @_;
+
+    foreach my $stashed ( @{ $self->_get_stash() } ) {
+        $self->_process_stashed_regexp( $stashed, $opts );
+    }
+}
+
+sub _process_stashed_regexp {
+    my ( $self, $stashed, $opts ) = @_;
+
+    my $reggrp = $self->_reggrp_by_idx( $stashed->{match_index} );
+
+    my @submatches = ();
+
+    if ( $reggrp->reference_count() ) {
+        @submatches = $stashed->{match} =~ $reggrp->regexp();
+    }
+
+    map { $_ .= ''; } @submatches;
+
+    my $ret = $stashed->{match};
+
+    my $replacement = $reggrp->replacement();
+
+    if ( defined( $replacement ) ) {
+        if ( not ref( $replacement ) ) {
+            $ret = $replacement;
+        }
+        elsif ( ref( $replacement ) eq 'CODE' ) {
+            $ret = $replacement->(
+                {
+                    match      => $stashed->{match},
+                    submatches => \@submatches,
+                    opts       => $opts,
+                }
+            );
+        }
+    }
+
+    my $placeholder = $reggrp->placeholder();
+
+    if ( defined( $placeholder ) ) {
+        my $store = $ret;
+
+        if ( not ref( $placeholder ) ) {
+            $ret = $placeholder;
+        }
+        elsif ( ref( $placeholder ) eq 'CODE' ) {
+            $ret = $placeholder->(
+                {
+                    match             => $stashed->{match},
+                    submatches        => \@submatches,
+                    opts              => $opts,
+                    placeholder_index => $self->_replacements_count()
+                }
+            );
+        }
+
+        $self->_replacements_add( $store );
+    }
+
+    $stashed->{match} = $ret;
 }
 
 sub _process {
@@ -332,7 +448,7 @@ sub _process {
 
     my @submatches = ();
 
-    if ( $self->_calculate_reference_count( $reggrp ) ) {
+    if ( $reggrp->reference_count() ) {
         @submatches = $match =~ $reggrp->regexp();
     }
 
