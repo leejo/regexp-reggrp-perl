@@ -22,7 +22,7 @@ use constant {
 
 # =========================================================================== #
 
-our $VERSION = '1.002001';
+our $VERSION = '2.00';
 
 sub new {
     my ( $class, $in_ref )  = @_;
@@ -329,7 +329,7 @@ Regexp::RegGrp - Groups a regular expressions collection
 
 =head1 VERSION
 
-Version 1.002
+Version 2.00
 
 =head1 DESCRIPTION
 
@@ -540,12 +540,12 @@ A scalar is requested by the context. The input will remain unchanged.
 
 =head1 AUTHOR
 
-Merten Falk, C<< <nevesenin at cpan.org> >>
+Merten Falk, C<< <nevesenin at cpan.org> >>. Now maintained by LEEJO
 
 =head1 BUGS
 
 Please report any bugs or feature requests through the web interface at
-L<http://github.com/nevesenin/regexp-reggrp-perl/issues>.
+L<http://github.com/leejo/regexp-reggrp-perl/issues>.
 
 =head1 SUPPORT
 

@@ -1,5 +1,12 @@
 Revision history for Regexp-RegGrp
 
+2.00       2015-05-29
+    - New maintainer: LEEJO
+    - Repoint issue tracker/repo at leejo's fork
+    - Add .travis.yml for CI goodness
+    - Add Changes test
+    - Add MYMETA.json to .gitignore
+
 1.002001   2012-02-18
     - Use gnutar to build distribution.
 
