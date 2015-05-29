@@ -327,6 +327,10 @@ __END__
 
 Regexp::RegGrp - Groups a regular expressions collection
 
+=for html
+<a href='https://travis-ci.org/leejo/regexp-reggrp-perl?branch=master'><img src='https://travis-ci.org/leejo/regexp-reggrp-perl.svg?branch=master' alt='Build Status' /></a>
+<a href='https://coveralls.io/r/leejo/regexp-reggrp-perl'><img src='https://coveralls.io/repos/leejo/regexp-reggrp-perl/badge.png?branch=master' alt='Coverage Status' /></a>
+
 =head1 VERSION
 
 Version 2.00
