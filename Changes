@@ -1,5 +1,8 @@
 Revision history for Regexp-RegGrp
 
+2.01       2017-04-18
+    - Makefile.PL moved to ExtUtils::MakeMaker to fix no . in @INC (perl 5.25.11+)
+
 2.00       2015-05-29
     - New maintainer: LEEJO
     - Repoint issue tracker/repo at leejo's fork
